@@ -24,7 +24,7 @@ export function CityCard() {
   }
 
   return (
-    <div className="fixed top-1/2 right-8 -translate-y-1/2 z-20 w-[320px] max-h-[80vh] overflow-y-auto glass rounded-2xl p-5">
+    <div className="fixed top-1/2 right-8 -translate-y-1/2 z-20 w-[320px] max-h-[80vh] overflow-y-auto glass rounded-2xl p-5 animate-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

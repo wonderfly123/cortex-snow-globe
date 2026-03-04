@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
+import { Html, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGlobeStore, CityData } from '@/lib/store'
 
@@ -49,16 +49,18 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   return (
     <group position={position}>
       {/* Glow ring */}
-      <mesh>
-        <ringGeometry args={[scale * 2, scale * 3.5, 32]} />
-        <meshBasicMaterial
-          color="#00eeff"
-          transparent
-          opacity={hovered ? 0.5 : 0.2}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
+      <Billboard>
+        <mesh>
+          <ringGeometry args={[scale * 2, scale * 3.5, 32]} />
+          <meshBasicMaterial
+            color="#00eeff"
+            transparent
+            opacity={hovered ? 0.5 : 0.2}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      </Billboard>
 
       {/* Core dot */}
       <mesh

@@ -59,7 +59,7 @@ export async function getConnection(): Promise<snowflake.Connection> {
 
   // Use connectAsync for external browser auth
   if (config.authenticator === 'EXTERNALBROWSER') {
-    connectionPromise = conn.connectAsync()
+    connectionPromise = conn.connectAsync((_err, _conn) => {})
       .then(() => {
         console.log('Connected to Snowflake successfully')
         connection = conn
