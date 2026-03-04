@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useRef, useMemo, useState, useCallback } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGlobeStore, CityData } from '@/lib/store'
 
-function latLonToVec3(lat: number, lon: number, radius = 1.02): THREE.Vector3 {
+function latLonToVec3(lat: number, lon: number, radius = 1.015): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180)
   const theta = (lon + 180) * (Math.PI / 180)
   return new THREE.Vector3(
@@ -17,18 +18,31 @@ function latLonToVec3(lat: number, lon: number, radius = 1.02): THREE.Vector3 {
 
 function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   const [hovered, setHovered] = useState(false)
+  const glowRef = useRef<THREE.Mesh>(null)
   const selectCity = useGlobeStore((s) => s.selectCity)
   const setCameraTarget = useGlobeStore((s) => s.setCameraTarget)
+  const selectedCity = useGlobeStore((s) => s.selectedCity)
+
+  const isSelected = selectedCity === city.city
 
   const position = useMemo(
     () => latLonToVec3(city.latitude, city.longitude),
     [city.latitude, city.longitude]
   )
 
-  const scale = useMemo(() => {
+  // Small pin size: 0.006 to 0.012 based on revenue
+  const pinSize = useMemo(() => {
     const ratio = (city.totalSales || 0) / maxSales
-    return 0.015 + ratio * 0.03
+    return 0.006 + ratio * 0.006
   }, [city.totalSales, maxSales])
+
+  // Pulse the glow ring when selected
+  useFrame(() => {
+    if (glowRef.current && isSelected) {
+      const s = 1 + Math.sin(Date.now() * 0.004) * 0.3
+      glowRef.current.scale.setScalar(s)
+    }
+  })
 
   const handleClick = useCallback((e: any) => {
     e.stopPropagation()
@@ -38,24 +52,33 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
 
   return (
     <group position={position}>
-      {/* Core dot — clickable */}
+      {/* Glow halo — subtle, visible on unselected; pulsing on selected */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[isSelected ? pinSize * 4 : pinSize * 2, 12, 12]} />
+        <meshBasicMaterial
+          color={isSelected ? '#ffaa00' : '#00eeff'}
+          transparent
+          opacity={isSelected ? 0.35 : 0.15}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Core pin — bright white dot */}
       <mesh
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
         onClick={handleClick}
       >
-        <sphereGeometry args={[hovered ? scale * 1.5 : scale, 12, 12]} />
+        <sphereGeometry args={[pinSize, 8, 8]} />
         <meshBasicMaterial
-          color={hovered ? '#40ffff' : '#00eeff'}
-          transparent
-          opacity={0.9}
+          color={isSelected ? '#ffcc44' : hovered ? '#ffffff' : '#e0f0ff'}
         />
       </mesh>
 
-      {/* Hover tooltip */}
-      {hovered && (
-        <Html distanceFactor={8} center style={{ pointerEvents: 'none' }}>
-          <div className="glass rounded-lg px-3 py-1.5 whitespace-nowrap text-sm font-medium text-white">
+      {/* Hover tooltip — fixed screen size */}
+      {hovered && !isSelected && (
+        <Html center style={{ pointerEvents: 'none', transform: 'translateY(-16px)' }}>
+          <div className="glass rounded px-2 py-0.5 whitespace-nowrap text-[10px] font-medium text-white">
             {city.city}
           </div>
         </Html>
