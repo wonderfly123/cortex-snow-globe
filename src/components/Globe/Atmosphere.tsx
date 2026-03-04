@@ -39,7 +39,7 @@ extend({ AtmosphereMaterial })
 export function Atmosphere() {
   return (
     <mesh scale={[1.12, 1.12, 1.12]}>
-      <sphereGeometry args={[1, 64, 64]} />
+      <sphereGeometry args={[1, 32, 32]} />
       {/* @ts-expect-error - custom shader material */}
       <atmosphereMaterial
         transparent

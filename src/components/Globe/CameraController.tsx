@@ -43,16 +43,23 @@ export function CameraController({ controlsRef }: { controlsRef: React.RefObject
   useFrame(() => {
     if (!isAnimating.current || !targetPosition.current) return
 
-    camera.position.lerp(targetPosition.current, 0.04)
-    camera.lookAt(0, 0, 0)
-
+    // Disable controls during animation to prevent fighting
     if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0)
+      controlsRef.current.enabled = false
     }
 
+    camera.position.lerp(targetPosition.current, 0.05)
+    camera.lookAt(0, 0, 0)
+
     const distance = camera.position.distanceTo(targetPosition.current)
-    if (distance < 0.01) {
+    if (distance < 0.02) {
       isAnimating.current = false
+      // Re-enable controls after animation completes
+      if (controlsRef.current) {
+        controlsRef.current.enabled = true
+        controlsRef.current.target.set(0, 0, 0)
+        controlsRef.current.update()
+      }
     }
   })
 

@@ -20,7 +20,7 @@ function Scene() {
       <directionalLight position={[-4, -1, -3]} intensity={0.3} color="#2244aa" />
 
       {/* Stars background */}
-      <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
+      <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={0.5} />
 
       {/* Globe */}
       <group>
@@ -43,14 +43,15 @@ function Scene() {
       />
       <CameraController controlsRef={controlsRef} />
 
-      {/* Postprocessing */}
-      <EffectComposer>
+      {/* Postprocessing — keep light to avoid glitchiness */}
+      <EffectComposer multisampling={0}>
         <Bloom
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.9}
-          intensity={0.8}
+          luminanceThreshold={0.6}
+          luminanceSmoothing={0.4}
+          intensity={0.4}
+          mipmapBlur
         />
-        <Vignette eskil={false} offset={0.1} darkness={0.8} />
+        <Vignette eskil={false} offset={0.1} darkness={0.6} />
       </EffectComposer>
     </>
   )
@@ -61,7 +62,8 @@ export function Globe() {
     <Canvas
       camera={{ position: [0, 0, 3.2], fov: 42 }}
       style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
-      gl={{ antialias: true, alpha: false }}
+      dpr={[1, 1.5]}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.setClearColor('#0a0a1a')
       }}

@@ -1,8 +1,7 @@
 'use client'
 
-import { useRef, useMemo, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { Html, Billboard } from '@react-three/drei'
+import { useMemo, useState, useCallback } from 'react'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGlobeStore, CityData } from '@/lib/store'
 
@@ -17,7 +16,6 @@ function latLonToVec3(lat: number, lon: number, radius = 1.02): THREE.Vector3 {
 }
 
 function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
-  const meshRef = useRef<THREE.Mesh>(null)
   const [hovered, setHovered] = useState(false)
   const selectCity = useGlobeStore((s) => s.selectCity)
   const setCameraTarget = useGlobeStore((s) => s.setCameraTarget)
@@ -32,45 +30,26 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
     return 0.015 + ratio * 0.03
   }, [city.totalSales, maxSales])
 
-  useFrame(() => {
-    if (meshRef.current && hovered) {
-      meshRef.current.scale.setScalar(1 + Math.sin(Date.now() * 0.005) * 0.3)
-    } else if (meshRef.current) {
-      meshRef.current.scale.setScalar(1)
-    }
-  })
-
-  const handleClick = (e: any) => {
+  const handleClick = useCallback((e: any) => {
     e.stopPropagation()
     selectCity(city.city, city.country)
     setCameraTarget({ lat: city.latitude, lon: city.longitude })
-  }
+  }, [city, selectCity, setCameraTarget])
 
   return (
     <group position={position}>
-      {/* Glow ring */}
-      <Billboard>
-        <mesh>
-          <ringGeometry args={[scale * 2, scale * 3.5, 32]} />
-          <meshBasicMaterial
-            color="#00eeff"
-            transparent
-            opacity={hovered ? 0.5 : 0.2}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      </Billboard>
-
-      {/* Core dot */}
+      {/* Core dot — clickable */}
       <mesh
-        ref={meshRef}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
         onClick={handleClick}
       >
-        <sphereGeometry args={[scale, 16, 16]} />
-        <meshBasicMaterial color="#00eeff" />
+        <sphereGeometry args={[hovered ? scale * 1.5 : scale, 12, 12]} />
+        <meshBasicMaterial
+          color={hovered ? '#40ffff' : '#00eeff'}
+          transparent
+          opacity={0.9}
+        />
       </mesh>
 
       {/* Hover tooltip */}
