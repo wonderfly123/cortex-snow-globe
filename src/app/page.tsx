@@ -79,6 +79,15 @@ export default function Home() {
       <Globe />
       <CityCard />
 
+      {/* Top-left badge */}
+      <div className="fixed top-6 left-6 z-20 glass rounded-xl px-4 py-2.5">
+        <h1 className="text-sm font-semibold text-white">Cortex Globe</h1>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+          <span className="text-[10px] text-slate-400 uppercase tracking-wider">Snowflake Connected</span>
+        </div>
+      </div>
+
       {/* Summary toggle button */}
       <button
         onClick={() => setSummaryOpen(!summaryOpen)}
