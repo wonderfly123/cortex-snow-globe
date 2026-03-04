@@ -16,17 +16,21 @@ function latLonToVec3(lat: number, lon: number, radius = 1.015): THREE.Vector3 {
   )
 }
 
-// Create a radial gradient texture for smooth circular markers
-function createDotTexture(size = 64): THREE.Texture {
+// Create a crisp circle texture with a thin soft edge
+function createDotTexture(size = 128): THREE.Texture {
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext('2d')!
   const center = size / 2
-  const gradient = ctx.createRadialGradient(center, center, 0, center, center, center)
-  gradient.addColorStop(0, 'rgba(255,255,255,1)')
-  gradient.addColorStop(0.3, 'rgba(255,255,255,0.9)')
-  gradient.addColorStop(0.6, 'rgba(255,255,255,0.3)')
+  // Hard circle with slight anti-aliased edge
+  ctx.beginPath()
+  ctx.arc(center, center, center * 0.7, 0, Math.PI * 2)
+  ctx.fillStyle = 'white'
+  ctx.fill()
+  // Thin soft outer glow
+  const gradient = ctx.createRadialGradient(center, center, center * 0.65, center, center, center * 0.9)
+  gradient.addColorStop(0, 'rgba(255,255,255,0.5)')
   gradient.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, size, size)
@@ -85,7 +89,7 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   // Pin size based on revenue
   const pinSize = useMemo(() => {
     const ratio = (city.totalSales || 0) / maxSales
-    return 0.012 + ratio * 0.012
+    return 0.03 + ratio * 0.03
   }, [city.totalSales, maxSales])
 
   const dotMaterial = useMemo(() => {
@@ -111,8 +115,8 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   // Pulse the glow when selected
   useFrame(() => {
     if (glowRef.current && isSelected) {
-      const pulse = 1 + Math.sin(Date.now() * 0.004) * 0.25
-      glowRef.current.scale.setScalar(pinSize * 6 * pulse)
+      const pulse = 1 + Math.sin(Date.now() * 0.004) * 0.15
+      glowRef.current.scale.setScalar(pinSize * 2.5 * pulse)
       glowRef.current.material.opacity = 0.5 + Math.sin(Date.now() * 0.004) * 0.3
     }
   })
@@ -129,7 +133,7 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
       <sprite
         ref={glowRef}
         material={glowMaterial}
-        scale={[pinSize * 6, pinSize * 6, 1]}
+        scale={[pinSize * 2.5, pinSize * 2.5, 1]}
         visible={isSelected}
       />
 

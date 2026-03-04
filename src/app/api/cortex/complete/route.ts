@@ -17,15 +17,25 @@ interface TopItemRow {
   MENU_ITEM_NAME: string
 }
 
+// In-memory cache: 1 hour TTL, clears on server restart
+const narrativeCache = new Map<string, { narrative: string; timestamp: number }>()
+const CACHE_TTL_MS = 60 * 60 * 1000
+
 export async function POST(request: Request) {
   try {
     const { city, country } = await request.json()
-    
+
     if (!city) {
       return NextResponse.json(
         { error: 'City is required' },
         { status: 400 }
       )
+    }
+
+    const cacheKey = `${city}|${country || ''}`
+    const cached = narrativeCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json({ narrative: cached.narrative })
     }
 
     // Fetch city KPIs for context
@@ -78,7 +88,10 @@ Provide a concise, data-driven insight:`
     
     // Clean up any markdown or extra formatting
     narrative = narrative.replace(/```[\s\S]*?```/g, '').trim()
-    
+
+    // Cache the result
+    narrativeCache.set(cacheKey, { narrative, timestamp: Date.now() })
+
     return NextResponse.json({ narrative })
   } catch (error) {
     console.error('Cortex Complete error:', error)

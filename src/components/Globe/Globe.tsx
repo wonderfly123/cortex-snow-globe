@@ -1,13 +1,25 @@
 'use client'
 
 import { Suspense, useRef } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useThree, useFrame, Canvas } from '@react-three/fiber'
 import { OrbitControls, Stars } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { Earth } from './Earth'
 import { Atmosphere } from './Atmosphere'
 import { CityMarkers } from './CityMarkers'
 import { CameraController } from './CameraController'
+
+// Light that follows the camera so the visible side is always lit
+function CameraLight() {
+  const lightRef = useRef<any>(null)
+  const { camera } = useThree()
+  useFrame(() => {
+    if (lightRef.current) {
+      lightRef.current.position.copy(camera.position)
+    }
+  })
+  return <pointLight ref={lightRef} intensity={1.2} color="#ddeeff" distance={10} />
+}
 
 function Scene() {
   const controlsRef = useRef(null)
@@ -18,6 +30,7 @@ function Scene() {
       <ambientLight intensity={0.4} color="#334466" />
       <directionalLight position={[4, 2, 3]} intensity={2.0} color="#fff5e0" />
       <directionalLight position={[-4, -1, -3]} intensity={0.3} color="#2244aa" />
+      <CameraLight />
 
       {/* Stars background */}
       <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={0.5} />
