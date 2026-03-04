@@ -7,6 +7,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { Earth } from './Earth'
 import { Atmosphere } from './Atmosphere'
 import { CityMarkers } from './CityMarkers'
+import { CameraController } from './CameraController'
 
 function Scene() {
   const controlsRef = useRef(null)
@@ -40,6 +41,7 @@ function Scene() {
         enableDamping
         dampingFactor={0.05}
       />
+      <CameraController controlsRef={controlsRef} />
 
       {/* Postprocessing */}
       <EffectComposer>
