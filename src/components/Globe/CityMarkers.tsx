@@ -16,9 +16,61 @@ function latLonToVec3(lat: number, lon: number, radius = 1.015): THREE.Vector3 {
   )
 }
 
+// Create a radial gradient texture for smooth circular markers
+function createDotTexture(size = 64): THREE.Texture {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const center = size / 2
+  const gradient = ctx.createRadialGradient(center, center, 0, center, center, center)
+  gradient.addColorStop(0, 'rgba(255,255,255,1)')
+  gradient.addColorStop(0.3, 'rgba(255,255,255,0.9)')
+  gradient.addColorStop(0.6, 'rgba(255,255,255,0.3)')
+  gradient.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.needsUpdate = true
+  return tex
+}
+
+// Create glow texture for selection ring
+function createGlowTexture(size = 128): THREE.Texture {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const center = size / 2
+  const gradient = ctx.createRadialGradient(center, center, center * 0.3, center, center, center)
+  gradient.addColorStop(0, 'rgba(255,170,0,0)')
+  gradient.addColorStop(0.5, 'rgba(255,170,0,0.4)')
+  gradient.addColorStop(0.7, 'rgba(255,170,0,0.15)')
+  gradient.addColorStop(1, 'rgba(255,170,0,0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.needsUpdate = true
+  return tex
+}
+
+// Shared textures (created once)
+let dotTexture: THREE.Texture | null = null
+let glowTexture: THREE.Texture | null = null
+
+function getDotTexture() {
+  if (!dotTexture) dotTexture = createDotTexture()
+  return dotTexture
+}
+
+function getGlowTexture() {
+  if (!glowTexture) glowTexture = createGlowTexture()
+  return glowTexture
+}
+
 function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   const [hovered, setHovered] = useState(false)
-  const glowRef = useRef<THREE.Mesh>(null)
+  const glowRef = useRef<THREE.Sprite>(null)
   const selectCity = useGlobeStore((s) => s.selectCity)
   const setCameraTarget = useGlobeStore((s) => s.setCameraTarget)
   const selectedCity = useGlobeStore((s) => s.selectedCity)
@@ -30,17 +82,38 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
     [city.latitude, city.longitude]
   )
 
-  // Small pin size: 0.006 to 0.012 based on revenue
+  // Pin size based on revenue
   const pinSize = useMemo(() => {
     const ratio = (city.totalSales || 0) / maxSales
-    return 0.006 + ratio * 0.006
+    return 0.012 + ratio * 0.012
   }, [city.totalSales, maxSales])
 
-  // Pulse the glow ring when selected
+  const dotMaterial = useMemo(() => {
+    return new THREE.SpriteMaterial({
+      map: getDotTexture(),
+      color: isSelected ? 0xffcc44 : hovered ? 0xffffff : 0xcceeff,
+      transparent: true,
+      depthWrite: false,
+      sizeAttenuation: true,
+    })
+  }, [isSelected, hovered])
+
+  const glowMaterial = useMemo(() => {
+    return new THREE.SpriteMaterial({
+      map: getGlowTexture(),
+      transparent: true,
+      depthWrite: false,
+      sizeAttenuation: true,
+      opacity: isSelected ? 0.8 : 0,
+    })
+  }, [isSelected])
+
+  // Pulse the glow when selected
   useFrame(() => {
     if (glowRef.current && isSelected) {
-      const s = 1 + Math.sin(Date.now() * 0.004) * 0.3
-      glowRef.current.scale.setScalar(s)
+      const pulse = 1 + Math.sin(Date.now() * 0.004) * 0.25
+      glowRef.current.scale.setScalar(pinSize * 6 * pulse)
+      glowRef.current.material.opacity = 0.5 + Math.sin(Date.now() * 0.004) * 0.3
     }
   })
 
@@ -52,30 +125,24 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
 
   return (
     <group position={position}>
-      {/* Glow halo — subtle, visible on unselected; pulsing on selected */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[isSelected ? pinSize * 4 : pinSize * 2, 12, 12]} />
-        <meshBasicMaterial
-          color={isSelected ? '#ffaa00' : '#00eeff'}
-          transparent
-          opacity={isSelected ? 0.35 : 0.15}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Selection glow */}
+      <sprite
+        ref={glowRef}
+        material={glowMaterial}
+        scale={[pinSize * 6, pinSize * 6, 1]}
+        visible={isSelected}
+      />
 
-      {/* Core pin — bright white dot */}
-      <mesh
+      {/* Core dot — sprite is always perfectly round */}
+      <sprite
+        material={dotMaterial}
+        scale={[pinSize, pinSize, 1]}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
         onClick={handleClick}
-      >
-        <sphereGeometry args={[pinSize, 8, 8]} />
-        <meshBasicMaterial
-          color={isSelected ? '#ffcc44' : hovered ? '#ffffff' : '#e0f0ff'}
-        />
-      </mesh>
+      />
 
-      {/* Hover tooltip — fixed screen size */}
+      {/* Hover tooltip */}
       {hovered && !isSelected && (
         <Html center style={{ pointerEvents: 'none', transform: 'translateY(-16px)' }}>
           <div className="glass rounded px-2 py-0.5 whitespace-nowrap text-[10px] font-medium text-white">
