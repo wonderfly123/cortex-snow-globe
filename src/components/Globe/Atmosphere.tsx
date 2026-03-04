@@ -38,14 +38,14 @@ extend({ AtmosphereMaterial })
 
 export function Atmosphere() {
   return (
-    <mesh scale={[1.06, 1.06, 1.06]}>
-      <sphereGeometry args={[1, 32, 32]} />
+    <mesh scale={[1.04, 1.04, 1.04]}>
+      <sphereGeometry args={[1, 128, 128]} />
       {/* @ts-expect-error - custom shader material */}
       <atmosphereMaterial
         transparent
         side={THREE.BackSide}
         depthWrite={false}
-        color={new THREE.Color(0x0088cc)}
+        color={new THREE.Color(0x3399ff)}
         coefficient={0.6}
         power={8.0}
       />
