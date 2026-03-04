@@ -6,6 +6,7 @@ import { OrbitControls, Stars } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { Earth } from './Earth'
 import { Atmosphere } from './Atmosphere'
+import { CityMarkers } from './CityMarkers'
 
 function Scene() {
   const controlsRef = useRef(null)
@@ -24,6 +25,7 @@ function Scene() {
       <group>
         <Earth />
         <Atmosphere />
+        <CityMarkers />
       </group>
 
       {/* Controls */}
