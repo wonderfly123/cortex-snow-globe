@@ -18,7 +18,17 @@ const getConnectionConfig = (): snowflake.ConnectionOptions => {
   // Check for private key auth
   if (process.env.SNOWFLAKE_PRIVATE_KEY) {
     // Inline key from env var (e.g. Vercel)
-    config.privateKey = process.env.SNOWFLAKE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    // Handle both literal \n and escaped \\n from different env var sources
+    let key = process.env.SNOWFLAKE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    // Ensure proper PEM format with newlines
+    if (!key.includes('\n')) {
+      // Key was pasted as single line — reconstruct PEM format
+      key = key
+        .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+        .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----\n')
+        .replace(/(.{64})(?!-)/g, '$1\n')
+    }
+    config.privateKey = key
     config.authenticator = 'SNOWFLAKE_JWT'
   } else if (process.env.SNOWFLAKE_PRIVATE_KEY_PATH) {
     // File-based key (local dev)
