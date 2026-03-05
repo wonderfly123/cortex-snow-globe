@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic'
 import { useGlobeStore } from '@/lib/store'
 import { CITIES } from '@/lib/cityData'
 import { CityCard } from '@/components/CityCard/CityCard'
-import { SummaryPanel } from '@/components/SummaryPanel/SummaryPanel'
-import { BarChart3 } from 'lucide-react'
+import { AnalyticsPanel } from '@/components/AnalyticsPanel/AnalyticsPanel'
+import { GlobalKPIBar } from '@/components/GlobalKPIBar'
 
 const Globe = dynamic(
   () => import('@/components/Globe/Globe').then((mod) => ({ default: mod.Globe })),
@@ -18,8 +18,6 @@ export default function Home() {
   const selectedCity = useGlobeStore((s) => s.selectedCity)
   const selectedCountry = useGlobeStore((s) => s.selectedCountry)
   const setDataLoading = useGlobeStore((s) => s.setDataLoading)
-  const summaryOpen = useGlobeStore((s) => s.summaryOpen)
-  const setSummaryOpen = useGlobeStore((s) => s.setSummaryOpen)
   const setCityKPI = useGlobeStore((s) => s.setCityKPI)
   const setMonthlyTrend = useGlobeStore((s) => s.setMonthlyTrend)
   const setTopItems = useGlobeStore((s) => s.setTopItems)
@@ -49,6 +47,9 @@ export default function Home() {
   useEffect(() => {
     if (!selectedCity) return
 
+    setCityKPI(null)
+    setMonthlyTrend([])
+    setTopItems([])
     setDataLoading(true)
     setNarrative('')
     setNarrativeLoading(true)
@@ -81,23 +82,15 @@ export default function Home() {
 
       {/* Top-left badge */}
       <div className="fixed top-6 left-6 z-20 glass rounded-xl px-4 py-2.5">
-        <h1 className="text-sm font-semibold text-white">Cortex Globe</h1>
+        <h1 className="text-sm font-semibold text-white">Cortex Snow Globe</h1>
         <div className="flex items-center gap-1.5 mt-0.5">
           <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
           <span className="text-[10px] text-slate-400 uppercase tracking-wider">Snowflake Connected</span>
         </div>
       </div>
 
-      {/* Summary toggle button */}
-      <button
-        onClick={() => setSummaryOpen(!summaryOpen)}
-        className="fixed top-6 right-6 z-20 glass rounded-xl px-4 py-2.5 flex items-center gap-2 hover:bg-white/10 transition"
-      >
-        <BarChart3 className="w-4 h-4 text-cyan-400" />
-        <span className="text-sm text-white">Summary</span>
-      </button>
-
-      <SummaryPanel />
+      <AnalyticsPanel />
+      <GlobalKPIBar />
     </main>
   )
 }

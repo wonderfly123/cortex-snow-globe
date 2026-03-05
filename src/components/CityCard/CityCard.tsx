@@ -7,6 +7,7 @@ import { X, DollarSign, ShoppingCart, TrendingUp, Truck } from 'lucide-react'
 
 export function CityCard() {
   const selectedCity = useGlobeStore((s) => s.selectedCity)
+  const selectedCountry = useGlobeStore((s) => s.selectedCountry)
   const cityKPI = useGlobeStore((s) => s.cityKPI)
   const monthlyTrend = useGlobeStore((s) => s.monthlyTrend)
   const topItems = useGlobeStore((s) => s.topItems)
@@ -24,13 +25,13 @@ export function CityCard() {
   }
 
   return (
-    <div className="fixed top-1/2 right-8 -translate-y-1/2 z-20 w-[320px] max-h-[80vh] overflow-y-auto glass rounded-2xl p-5 animate-in">
+    <div className="fixed top-1/2 left-8 -translate-y-1/2 z-20 w-[320px] max-h-[80vh] overflow-y-auto glass rounded-2xl p-5 animate-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold text-white">{selectedCity}</h2>
-          {cityKPI && (
-            <p className="text-xs text-slate-400">{cityKPI.country}</p>
+          {selectedCountry && (
+            <p className="text-xs text-slate-400">{selectedCountry}</p>
           )}
         </div>
         <button onClick={handleClose} className="p-1 hover:bg-white/10 rounded-lg transition">

@@ -38,3 +38,48 @@ html, body {
 .animate-in {
   animation: fade-in 0.3s ease-out, slide-in-from-right 0.3s ease-out;
 }
+
+/* Range slider styles for TimeSlider */
+.slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.slider-thumb::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: transparent;
+}
+
+.slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #00eeff;
+  border: 2px solid #0e1a2e;
+  box-shadow: 0 0 6px rgba(0, 238, 255, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
+  margin-top: -6px;
+}
+
+.slider-thumb::-moz-range-track {
+  height: 4px;
+  background: transparent;
+}
+
+.slider-thumb::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #00eeff;
+  border: 2px solid #0e1a2e;
+  box-shadow: 0 0 6px rgba(0, 238, 255, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
+}
