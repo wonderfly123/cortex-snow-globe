@@ -16,10 +16,13 @@ const getConnectionConfig = (): snowflake.ConnectionOptions => {
   }
   
   // Check for private key auth
-  if (process.env.SNOWFLAKE_PRIVATE_KEY_PATH) {
-    // Resolve path relative to project root
+  if (process.env.SNOWFLAKE_PRIVATE_KEY) {
+    // Inline key from env var (e.g. Vercel)
+    config.privateKey = process.env.SNOWFLAKE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    config.authenticator = 'SNOWFLAKE_JWT'
+  } else if (process.env.SNOWFLAKE_PRIVATE_KEY_PATH) {
+    // File-based key (local dev)
     const keyPath = path.resolve(process.cwd(), process.env.SNOWFLAKE_PRIVATE_KEY_PATH)
-    console.log('Loading private key from:', keyPath)
     config.privateKey = fs.readFileSync(keyPath, 'utf-8')
     config.authenticator = 'SNOWFLAKE_JWT'
   } else if (process.env.SNOWFLAKE_PASSWORD) {
