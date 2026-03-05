@@ -94,7 +94,10 @@ export default function MenuTypesTab() {
           />
           <Tooltip
             contentStyle={tooltipStyle}
+            labelStyle={{ color: '#ffffff' }}
+            itemStyle={{ color: '#ffffff' }}
             formatter={(value: number | undefined) => [formatCurrency(value ?? 0), 'Sales']}
+            cursor={false}
           />
           <Bar dataKey="totalSales" radius={[0, 4, 4, 0]}>
             {chartData.map((_, index) => (

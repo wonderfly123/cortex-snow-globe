@@ -13,9 +13,9 @@ export const COLORS = {
 
 /** Ordered color palette for mapping over data series */
 export const CHART_COLORS = [
-  COLORS.primary,
-  COLORS.secondary,
-  COLORS.tertiary,
+  '#06b6d4',
+  '#22d3ee',
+  '#67e8f9',
   COLORS.quaternary,
 ] as const
 
