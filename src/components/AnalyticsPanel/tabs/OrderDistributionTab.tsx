@@ -88,8 +88,8 @@ export default function OrderDistributionTab() {
 
   if (loading || orderDistributionData === null) {
     return (
-      <div className="flex items-center justify-center h-[200px] text-cyan-300 text-sm">
-        Loading order distribution data...
+      <div className="flex items-center justify-center gap-2 h-[200px] text-cyan-300 text-sm">
+        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeLinecap="round" /></svg>Loading...
       </div>
     )
   }

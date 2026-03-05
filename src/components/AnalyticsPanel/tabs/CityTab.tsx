@@ -78,8 +78,8 @@ export default function CityTab() {
       </div>
 
       {dataLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center gap-2 h-[200px] text-cyan-300 text-sm">
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeLinecap="round" /></svg>Loading...
         </div>
       ) : cityKPI ? (
         <div className="grid grid-cols-3 gap-6">
