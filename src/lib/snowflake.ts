@@ -28,6 +28,11 @@ const getConnectionConfig = (): snowflake.ConnectionOptions => {
         .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----\n')
         .replace(/(.{64})(?!-)/g, '$1\n')
     }
+    console.log('Private key starts with:', key.substring(0, 40))
+    console.log('Private key ends with:', key.substring(key.length - 40))
+    console.log('Private key length:', key.length)
+    console.log('Private key has newlines:', key.includes('\n'))
+    console.log('Private key line count:', key.split('\n').length)
     config.privateKey = key
     config.authenticator = 'SNOWFLAKE_JWT'
   } else if (process.env.SNOWFLAKE_PRIVATE_KEY_PATH) {
