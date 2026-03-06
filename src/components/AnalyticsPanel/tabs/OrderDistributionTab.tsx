@@ -3,8 +3,22 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useGlobeStore, type OrderDistributionRow } from '@/lib/store'
 import { useAnalyticsData } from '../useAnalyticsData'
-import { formatNumber } from '@/lib/cityData'
+import { formatCurrency, formatNumber } from '@/lib/cityData'
 import { TabInsight } from '../TabInsight'
+import { COLORS, tooltipStyle, axisStyle } from '../ChartTheme'
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  ZAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  BarChart,
+  Bar,
+  CartesianGrid,
+} from 'recharts'
 
 const SLICE_COLORS = [
   '#00e5ff','#a78bfa','#f5c842','#f97316','#ef4444',
@@ -46,29 +60,68 @@ export default function OrderDistributionTab() {
   const [hoveredIdx, setHoveredIdx] = useState(-1)
   const [activeIdx, setActiveIdx] = useState(-1)
 
-  const totalOrders = useMemo(() => {
-    if (!orderDistributionData) return 0
-    return orderDistributionData.reduce((sum, row) => sum + row.totalOrders, 0)
+  // Sort by totalSales for donut
+  const sortedByRevenue = useMemo(() => {
+    if (!orderDistributionData) return []
+    return orderDistributionData.slice().sort((a, b) => b.totalSales - a.totalSales)
   }, [orderDistributionData])
 
+  const totalRevenue = useMemo(() => {
+    return sortedByRevenue.reduce((sum, row) => sum + row.totalSales, 0)
+  }, [sortedByRevenue])
+
   const chartData: ChartEntry[] = useMemo(() => {
+    return sortedByRevenue.map((row, i) => ({
+      name: row.country,
+      value: row.totalSales,
+      percentage: totalRevenue > 0 ? (row.totalSales / totalRevenue) * 100 : 0,
+      color: SLICE_COLORS[i % SLICE_COLORS.length],
+    }))
+  }, [sortedByRevenue, totalRevenue])
+
+  // Summary cards: highest and lowest efficiency
+  const highestEfficiency = useMemo(() => {
+    if (!orderDistributionData || orderDistributionData.length === 0) return null
+    return orderDistributionData.reduce((best, row) =>
+      row.revenuePerTruck > best.revenuePerTruck ? row : best
+    )
+  }, [orderDistributionData])
+
+  const lowestEfficiency = useMemo(() => {
+    if (!orderDistributionData || orderDistributionData.length === 0) return null
+    return orderDistributionData.reduce((worst, row) =>
+      row.revenuePerTruck < worst.revenuePerTruck ? row : worst
+    )
+  }, [orderDistributionData])
+
+  // Scatter plot data
+  const scatterData = useMemo(() => {
+    return sortedByRevenue.map((row, i) => ({
+      country: row.country,
+      truckCount: row.truckCount,
+      revenuePerTruck: row.revenuePerTruck,
+      totalSales: row.totalSales,
+      color: SLICE_COLORS[i % SLICE_COLORS.length],
+    }))
+  }, [sortedByRevenue])
+
+  // Efficiency bar data sorted by revenuePerTruck descending
+  const efficiencyData = useMemo(() => {
     if (!orderDistributionData) return []
     return orderDistributionData
       .slice()
-      .sort((a, b) => b.totalOrders - a.totalOrders)
+      .sort((a, b) => b.revenuePerTruck - a.revenuePerTruck)
       .map((row, i) => ({
-        name: row.country,
-        value: row.totalOrders,
-        percentage: totalOrders > 0 ? (row.totalOrders / totalOrders) * 100 : 0,
+        country: row.country,
+        revenuePerTruck: row.revenuePerTruck,
+        truckCount: row.truckCount,
         color: SLICE_COLORS[i % SLICE_COLORS.length],
       }))
-  }, [orderDistributionData, totalOrders])
-
-  const maxOrders = useMemo(() => Math.max(...chartData.map(d => d.value), 1), [chartData])
+  }, [orderDistributionData])
 
   // Build donut arcs
   const arcs = useMemo(() => {
-    const CX = 130, CY = 130, R_OUT = 115, R_IN = 70, GAP = 1.2
+    const CX = 90, CY = 90, R_OUT = 85, R_IN = 55, GAP = 1.2
     let cursor = 0
     return chartData.map((entry) => {
       const span = entry.percentage / 100 * 360
@@ -106,93 +159,172 @@ export default function OrderDistributionTab() {
     <div className="w-full space-y-4">
       <TabInsight tab="distribution" />
 
-      <p className="text-[9px] uppercase tracking-widest text-slate-500 mb-3 font-mono">
-        Orders by Country — hover or click any segment
-      </p>
+      {/* Summary Cards */}
+      <div className="flex gap-4">
+        {highestEfficiency && (
+          <div className="bg-white/5 rounded-lg px-4 py-2.5">
+            <p className="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-0.5">Highest Efficiency</p>
+            <p className="text-sm font-semibold text-cyan-400">{highestEfficiency.country}</p>
+            <p className="text-[10px] text-slate-400">
+              {formatCurrency(highestEfficiency.revenuePerTruck)}/truck &middot; {formatNumber(highestEfficiency.truckCount)} trucks
+            </p>
+          </div>
+        )}
+        {lowestEfficiency && (
+          <div className="bg-white/5 rounded-lg px-4 py-2.5">
+            <p className="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-0.5">Lowest Efficiency</p>
+            <p className="text-sm font-semibold text-orange-400">{lowestEfficiency.country}</p>
+            <p className="text-[10px] text-slate-400">
+              {formatCurrency(lowestEfficiency.revenuePerTruck)}/truck &middot; {formatNumber(lowestEfficiency.truckCount)} trucks
+            </p>
+          </div>
+        )}
+      </div>
 
-      <div className="flex items-end gap-8">
-        {/* Donut */}
-        <div className="relative shrink-0" style={{ width: 220, height: 220 }}>
-          <svg viewBox="0 0 260 260" className="w-full h-full">
-            {arcs.map((arc, i) => {
-              const dimmed = highlighted >= 0 && highlighted !== i
-              return (
-                <path
-                  key={i}
-                  d={arc.d}
-                  fill={arc.color}
-                  opacity={dimmed ? 0.25 : 0.85}
-                  className="cursor-pointer transition-all duration-150"
-                  style={{
-                    transformOrigin: '130px 130px',
-                    transform: highlighted === i ? 'scale(1.04)' : 'scale(1)',
-                  }}
-                  onMouseEnter={() => setHoveredIdx(i)}
-                  onMouseLeave={() => setHoveredIdx(-1)}
-                  onClick={() => handleClick(i)}
-                />
-              )
-            })}
-          </svg>
+      {/* Donut + Scatter Plot row */}
+      <div className="flex items-start gap-6">
+        {/* Revenue Donut */}
+        <div className="shrink-0">
+          <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-mono mb-1">Revenue by Country</p>
+          <div className="relative" style={{ width: 180, height: 180 }}>
+            <svg viewBox="0 0 180 180" className="w-full h-full">
+              {arcs.map((arc, i) => {
+                const dimmed = highlighted >= 0 && highlighted !== i
+                return (
+                  <path
+                    key={i}
+                    d={arc.d}
+                    fill={arc.color}
+                    opacity={dimmed ? 0.25 : 0.85}
+                    className="cursor-pointer transition-all duration-150"
+                    style={{
+                      transformOrigin: '90px 90px',
+                      transform: highlighted === i ? 'scale(1.04)' : 'scale(1)',
+                    }}
+                    onMouseEnter={() => setHoveredIdx(i)}
+                    onMouseLeave={() => setHoveredIdx(-1)}
+                    onClick={() => handleClick(i)}
+                  />
+                )
+              })}
+            </svg>
 
-          {/* Center label */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center">
-              <div
-                className="text-xl font-extrabold tracking-tight"
-                style={{ color: centerEntry?.color ?? '#e8f4f8' }}
-              >
-                {centerEntry ? formatNumber(centerEntry.value) : formatNumber(totalOrders)}
-              </div>
-              <div className="text-[9px] uppercase tracking-widest text-slate-500 font-mono mt-0.5">
-                {centerEntry?.name ?? 'Total Orders'}
+            {/* Center label */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <div
+                  className="text-base font-extrabold tracking-tight"
+                  style={{ color: centerEntry?.color ?? '#e8f4f8' }}
+                >
+                  {centerEntry ? formatCurrency(centerEntry.value) : formatCurrency(totalRevenue)}
+                </div>
+                <div className="text-[8px] uppercase tracking-widest text-slate-500 font-mono mt-0.5">
+                  {centerEntry?.name ?? 'Total Revenue'}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Vertical bar chart */}
-        <div className="flex-1 flex items-end gap-1 min-w-0" style={{ height: 220 }}>
-          {chartData.map((entry, i) => {
-            const isHovered = hoveredIdx === i
-            const isActive = activeIdx === i
-            const lit = isHovered || isActive
-            const barHeight = (entry.value / maxOrders) * 180
-            return (
-              <div
-                key={entry.name}
-                className="flex-1 flex flex-col items-center justify-end cursor-pointer group"
-                style={{ height: '100%' }}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(-1)}
-                onClick={() => handleClick(i)}
-              >
-                {/* Value label on hover */}
-                <div className={`text-[9px] font-mono mb-1 transition-opacity ${lit ? 'opacity-100 text-slate-300' : 'opacity-0'}`}>
-                  {formatNumber(entry.value)}
-                </div>
-                {/* Bar */}
-                <div
-                  className="w-full rounded-t transition-all duration-200"
-                  style={{
-                    height: barHeight,
-                    backgroundColor: entry.color,
-                    opacity: highlighted >= 0 && !lit ? 0.25 : 0.85,
-                    transform: lit ? 'scaleX(1.1)' : 'scaleX(1)',
-                    maxWidth: 48,
-                    minWidth: 8,
-                  }}
-                />
-                {/* Country label */}
-                <div className={`text-[8px] font-mono mt-1.5 truncate w-full text-center transition-colors ${lit ? 'text-slate-200' : 'text-slate-500'}`}>
-                  {entry.name.length > 6 ? entry.name.slice(0, 5) + '…' : entry.name}
-                </div>
-              </div>
-            )
-          })}
+        {/* Scatter Plot */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-mono mb-1">Trucks vs Revenue Per Truck</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <ScatterChart margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+              <XAxis
+                type="number"
+                dataKey="truckCount"
+                name="Trucks"
+                tick={axisStyle}
+                tickLine={false}
+                axisLine={false}
+                label={{ value: 'Trucks', position: 'insideBottom', offset: -2, style: { fill: COLORS.text, fontSize: 10 } }}
+              />
+              <YAxis
+                type="number"
+                dataKey="revenuePerTruck"
+                name="Rev/Truck"
+                tick={axisStyle}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v: number) => formatCurrency(v)}
+                width={65}
+              />
+              <ZAxis
+                type="number"
+                dataKey="totalSales"
+                range={[80, 600]}
+                name="Revenue"
+              />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any, name: any) => {
+                  if (name === 'Rev/Truck') return [formatCurrency(value), 'Rev/Truck']
+                  if (name === 'Revenue') return [formatCurrency(value), 'Total Revenue']
+                  return [formatNumber(value), name]
+                }}
+                labelFormatter={(_, payload) => {
+                  if (payload && payload.length > 0) {
+                    return payload[0]?.payload?.country ?? ''
+                  }
+                  return ''
+                }}
+              />
+              <Scatter data={scatterData}>
+                {scatterData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
+      {/* Revenue Per Truck Horizontal Bar Chart */}
+      <div>
+        <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-mono mb-1">Revenue Per Truck Ranking</p>
+        <ResponsiveContainer width="100%" height={efficiencyData.length * 32 + 20}>
+          <BarChart
+            data={efficiencyData}
+            layout="vertical"
+            margin={{ top: 5, right: 20, bottom: 5, left: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} horizontal={false} />
+            <XAxis
+              type="number"
+              tick={axisStyle}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v: number) => formatCurrency(v)}
+            />
+            <YAxis
+              type="category"
+              dataKey="country"
+              tick={axisStyle}
+              tickLine={false}
+              axisLine={false}
+              width={80}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any, _name: any, props: any) => {
+                return [
+                  `${formatCurrency(value)} (${formatNumber(props.payload.truckCount)} trucks)`,
+                  'Rev/Truck',
+                ]
+              }}
+            />
+            <Bar dataKey="revenuePerTruck" radius={[0, 4, 4, 0]}>
+              {efficiencyData.map((entry, i) => (
+                <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
