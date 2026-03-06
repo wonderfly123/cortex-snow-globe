@@ -68,6 +68,8 @@ export interface OrderDistributionRow {
   country: string
   totalOrders: number
   totalSales: number
+  truckCount: number
+  revenuePerTruck: number
 }
 
 export interface OrderPatternRow {
