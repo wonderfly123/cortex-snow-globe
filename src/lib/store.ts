@@ -46,6 +46,7 @@ export interface TopBrandRow {
   totalSales: number
   totalOrders: number
   brandRank: number
+  country?: string | null
 }
 
 export interface MenuTypeRow {
