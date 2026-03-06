@@ -56,13 +56,22 @@ export default function SalesTrendTab() {
 
   // All countries combined
   const allCountriesData = useMemo(() => {
-    const monthMap = new Map<string, number>()
+    const monthMap = new Map<string, { sales: number; orders: number }>()
     for (const row of filtered) {
-      monthMap.set(row.month, (monthMap.get(row.month) ?? 0) + row.totalSales)
+      const prev = monthMap.get(row.month) ?? { sales: 0, orders: 0 }
+      monthMap.set(row.month, {
+        sales: prev.sales + row.totalSales,
+        orders: prev.orders + row.totalOrders,
+      })
     }
     return [...monthMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, sales]) => ({ month, sales }))
+      .map(([month, { sales, orders }]) => ({
+        month,
+        sales,
+        orders,
+        aov: orders > 0 ? Math.round((sales / orders) * 100) / 100 : 0,
+      }))
   }, [filtered])
 
   // All countries sorted by total sales
@@ -155,6 +164,20 @@ export default function SalesTrendTab() {
             <Tooltip contentStyle={tooltipStyle} labelFormatter={formatMonth} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), 'Revenue']} />
             <Area type="monotone" dataKey="sales" stroke={COLORS.primary} strokeWidth={2} fill="url(#allGrad)" />
           </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* AOV Trend */}
+      <div>
+        <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-mono mb-1">Average Order Value</p>
+        <ResponsiveContainer width="100%" height={120}>
+          <LineChart data={allCountriesData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+            <XAxis dataKey="month" tickFormatter={formatMonth} tick={axisStyle} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} tickFormatter={(v: number) => `$${v.toFixed(2)}`} tick={axisStyle} tickLine={false} axisLine={false} width={60} />
+            <Tooltip contentStyle={tooltipStyle} labelFormatter={formatMonth} formatter={(value: number | undefined) => [`$${(value ?? 0).toFixed(2)}`, 'AOV']} />
+            <Line type="monotone" dataKey="aov" stroke="#f5c842" strokeWidth={2} dot={false} />
+          </LineChart>
         </ResponsiveContainer>
       </div>
 

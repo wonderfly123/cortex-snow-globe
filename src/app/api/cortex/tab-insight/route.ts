@@ -78,7 +78,7 @@ const TAB_QUERIES: Record<string, string | string[]> = {
 
 const TAB_QUESTIONS: Record<string, string> = {
   'sales-trend':
-    'Question: What is the overall trend in sales across all countries? Analyze the monthly sales data below. Identify growth trends, seasonal patterns, which countries drive the most revenue, and any notable changes over time.',
+    'Question: What is the overall trend in sales across all countries? Analyze the monthly sales data below. Identify growth trends, seasonal patterns, which countries drive the most revenue, and any notable changes over time. Also calculate and comment on the average order value (AOV = TOTAL_SALES / TOTAL_ORDERS) trend — is it rising, falling, or stable?',
   'top-brands':
     'Question: Which are the top 3 selling truck brand names each year? Analyze the data below. Discuss brand consistency, any shifts in rankings between years, and what this suggests about brand performance and customer loyalty.',
   'menu-types':
