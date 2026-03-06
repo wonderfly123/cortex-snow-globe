@@ -16,7 +16,8 @@ export const CHART_COLORS = [
   '#06b6d4',
   '#22d3ee',
   '#67e8f9',
-  COLORS.quaternary,
+  '#a78bfa',
+  '#818cf8',
 ] as const
 
 /** Recharts tooltip content style — dark glass background */
