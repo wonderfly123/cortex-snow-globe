@@ -51,6 +51,7 @@ export interface TopBrandRow {
 
 export interface MenuTypeRow {
   country: string
+  year: number
   menuType: string
   totalSales: number
   typeRank: number

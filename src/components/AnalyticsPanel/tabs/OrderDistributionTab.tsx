@@ -258,18 +258,18 @@ export default function OrderDistributionTab() {
                 name="Revenue"
               />
               <Tooltip
-                contentStyle={tooltipStyle}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => {
-                  if (name === 'Rev/Truck') return [formatCurrency(value), 'Rev/Truck']
-                  if (name === 'Revenue') return [formatCurrency(value), 'Total Revenue']
-                  return [formatNumber(value), name]
-                }}
-                labelFormatter={(_, payload) => {
-                  if (payload && payload.length > 0) {
-                    return payload[0]?.payload?.country ?? ''
-                  }
-                  return ''
+                content={({ active, payload }) => {
+                  if (!active || !payload || payload.length === 0) return null
+                  const d = payload[0]?.payload
+                  if (!d) return null
+                  return (
+                    <div style={tooltipStyle}>
+                      <p style={{ color: '#fff', fontWeight: 600, marginBottom: 4 }}>{d.country}</p>
+                      <p style={{ color: '#fff', fontSize: 12 }}>Rev/Truck: {formatCurrency(d.revenuePerTruck)}</p>
+                      <p style={{ color: '#fff', fontSize: 12 }}>Trucks: {d.truckCount}</p>
+                      <p style={{ color: '#94a3b8', fontSize: 11 }}>Total: {formatCurrency(d.totalSales)}</p>
+                    </div>
+                  )
                 }}
               />
               <Scatter data={scatterData}>
@@ -309,6 +309,8 @@ export default function OrderDistributionTab() {
             />
             <Tooltip
               contentStyle={tooltipStyle}
+              labelStyle={{ color: '#ffffff' }}
+              itemStyle={{ color: '#ffffff' }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, _name: any, props: any) => {
                 return [
