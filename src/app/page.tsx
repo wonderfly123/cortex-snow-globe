@@ -7,6 +7,8 @@ import { CITIES } from '@/lib/cityData'
 import { CityCard } from '@/components/CityCard/CityCard'
 import { AnalyticsPanel } from '@/components/AnalyticsPanel/AnalyticsPanel'
 import { GlobalKPIBar } from '@/components/GlobalKPIBar'
+import { useOrderFeed } from '@/hooks/useOrderFeed'
+import { OrderToast } from '@/components/Globe/OrderToast'
 
 const Globe = dynamic(
   () => import('@/components/Globe/Globe').then((mod) => ({ default: mod.Globe })),
@@ -23,6 +25,8 @@ export default function Home() {
   const setTopItems = useGlobeStore((s) => s.setTopItems)
   const setNarrative = useGlobeStore((s) => s.setNarrative)
   const setNarrativeLoading = useGlobeStore((s) => s.setNarrativeLoading)
+
+  useOrderFeed()
 
   useEffect(() => {
     async function fetchCities() {
@@ -88,6 +92,7 @@ export default function Home() {
 
       <AnalyticsPanel />
       <GlobalKPIBar />
+      <OrderToast />
     </main>
   )
 }

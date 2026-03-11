@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { executeQuery } from '@/lib/snowflake'
+import { withCache } from '@/lib/cache'
 
 interface MenuTypesRow {
   COUNTRY: string
@@ -11,22 +12,26 @@ interface MenuTypesRow {
 
 export async function GET() {
   try {
-    const rows = await executeQuery<MenuTypesRow>(`
-      SELECT COUNTRY, YEAR(ORDER_TS_DATE) AS YEAR, MENU_TYPE, SUM(PRICE) AS TOTAL_SALES,
-        RANK() OVER (PARTITION BY COUNTRY, YEAR(ORDER_TS_DATE) ORDER BY SUM(PRICE) DESC) AS TYPE_RANK
-      FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
-      GROUP BY 1, 2, 3
-      QUALIFY TYPE_RANK <= 3
-      ORDER BY COUNTRY, YEAR, TYPE_RANK
-    `)
-    const data = rows.map(row => ({
-      country: row.COUNTRY,
-      year: row.YEAR,
-      menuType: row.MENU_TYPE,
-      totalSales: row.TOTAL_SALES,
-      typeRank: row.TYPE_RANK,
-    }))
-    return NextResponse.json({ data })
+    const result = await withCache('menu-types', async () => {
+      const rows = await executeQuery<MenuTypesRow>(`
+        SELECT COUNTRY, YEAR(ORDER_TS_DATE) AS YEAR, MENU_TYPE, SUM(PRICE) AS TOTAL_SALES,
+          RANK() OVER (PARTITION BY COUNTRY, YEAR(ORDER_TS_DATE) ORDER BY SUM(PRICE) DESC) AS TYPE_RANK
+        FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
+        GROUP BY 1, 2, 3
+        QUALIFY TYPE_RANK <= 3
+        ORDER BY COUNTRY, YEAR, TYPE_RANK
+      `)
+      return {
+        data: rows.map(row => ({
+          country: row.COUNTRY,
+          year: row.YEAR,
+          menuType: row.MENU_TYPE,
+          totalSales: row.TOTAL_SALES,
+          typeRank: row.TYPE_RANK,
+        }))
+      }
+    })
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Failed to fetch menu types:', error)
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })

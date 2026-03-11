@@ -72,6 +72,30 @@ function getGlowTexture() {
   return glowTexture
 }
 
+function createPopTexture(size = 128): THREE.Texture {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const center = size / 2
+  const gradient = ctx.createRadialGradient(center, center, center * 0.4, center, center, center)
+  gradient.addColorStop(0, 'rgba(0,238,255,0)')
+  gradient.addColorStop(0.5, 'rgba(0,238,255,0.6)')
+  gradient.addColorStop(0.7, 'rgba(0,238,255,0.2)')
+  gradient.addColorStop(1, 'rgba(0,238,255,0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.needsUpdate = true
+  return tex
+}
+
+let popTexture: THREE.Texture | null = null
+function getPopTexture() {
+  if (!popTexture) popTexture = createPopTexture()
+  return popTexture
+}
+
 function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   const [hovered, setHovered] = useState(false)
   const glowRef = useRef<THREE.Sprite>(null)
@@ -80,6 +104,10 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
   const selectedCity = useGlobeStore((s) => s.selectedCity)
 
   const isSelected = selectedCity === city.city
+  const poppingCities = useGlobeStore((s) => s.poppingCities)
+  const isPopping = poppingCities.has(city.city)
+  const popRingRef = useRef<THREE.Sprite>(null)
+  const popStartRef = useRef(0)
 
   const position = useMemo(
     () => latLonToVec3(city.latitude, city.longitude),
@@ -121,6 +149,24 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
     }
   })
 
+  // Pop ring animation for new orders
+  useFrame(() => {
+    if (popRingRef.current) {
+      if (isPopping) {
+        if (popStartRef.current === 0) popStartRef.current = Date.now()
+        const elapsed = (Date.now() - popStartRef.current) / 1000
+        const scale = pinSize * (2 + elapsed * 4)
+        const opacity = Math.max(0, 1 - elapsed / 3)
+        popRingRef.current.scale.setScalar(scale)
+        popRingRef.current.material.opacity = opacity * 0.6
+        popRingRef.current.visible = true
+      } else {
+        popStartRef.current = 0
+        popRingRef.current.visible = false
+      }
+    }
+  })
+
   const handleClick = useCallback((e: any) => {
     e.stopPropagation()
     selectCity(city.city, city.country)
@@ -129,6 +175,20 @@ function CityMarker({ city, maxSales }: { city: CityData; maxSales: number }) {
 
   return (
     <group position={position}>
+      {/* Pop ring for new orders */}
+      <sprite
+        ref={popRingRef}
+        material={new THREE.SpriteMaterial({
+          map: getPopTexture(),
+          transparent: true,
+          depthWrite: false,
+          sizeAttenuation: true,
+          opacity: 0,
+        })}
+        scale={[pinSize * 2, pinSize * 2, 1]}
+        visible={false}
+      />
+
       {/* Selection glow */}
       <sprite
         ref={glowRef}

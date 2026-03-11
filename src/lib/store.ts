@@ -92,6 +92,23 @@ export interface HourPatternRow {
   totalOrders: number
 }
 
+export interface RecentOrderItem {
+  menuItemName: string
+  quantity: number
+  price: number
+}
+
+export interface RecentOrder {
+  orderId: number
+  orderTs: string
+  city: string
+  country: string
+  brandName: string
+  orderTotal: number
+  items: RecentOrderItem[]
+  receivedAt: number // Date.now() for TTL
+}
+
 export type AnalyticsTab = 'sales-trend' | 'top-brands' | 'menu-types' | 'franchisees' | 'distribution' | 'patterns'
 
 interface GlobeStore {
@@ -161,6 +178,16 @@ interface GlobeStore {
   setTabInsight: (tab: string, insight: string) => void
   tabInsightLoading: Record<string, boolean>
   setTabInsightLoading: (tab: string, loading: boolean) => void
+
+  // Real-time order feed
+  recentOrders: RecentOrder[]
+  addRecentOrders: (orders: RecentOrder[]) => void
+  expireRecentOrders: (ttl: number) => void
+  lastPollTimestamp: string | null
+  setLastPollTimestamp: (ts: string) => void
+  poppingCities: Set<string>
+  addPoppingCity: (city: string) => void
+  removePoppingCity: (city: string) => void
 }
 
 export const useGlobeStore = create<GlobeStore>((set) => ({
@@ -223,4 +250,30 @@ export const useGlobeStore = create<GlobeStore>((set) => ({
   setTabInsight: (tab, insight) => set((s) => ({ tabInsights: { ...s.tabInsights, [tab]: insight } })),
   tabInsightLoading: {},
   setTabInsightLoading: (tab, loading) => set((s) => ({ tabInsightLoading: { ...s.tabInsightLoading, [tab]: loading } })),
+
+  // Real-time order feed
+  recentOrders: [],
+  addRecentOrders: (orders) => set((s) => {
+    // Dedupe by orderId — don't re-add orders already in the list
+    const existingIds = new Set(s.recentOrders.map((o) => o.orderId))
+    const newOrders = orders.filter((o) => !existingIds.has(o.orderId))
+    return { recentOrders: [...newOrders, ...s.recentOrders].slice(0, 20) }
+  }),
+  expireRecentOrders: (ttl) => set((s) => {
+    const cutoff = Date.now() - ttl
+    return { recentOrders: s.recentOrders.filter((o) => o.receivedAt > cutoff) }
+  }),
+  lastPollTimestamp: null,
+  setLastPollTimestamp: (ts) => set({ lastPollTimestamp: ts }),
+  poppingCities: new Set(),
+  addPoppingCity: (city) => set((s) => {
+    const next = new Set(s.poppingCities)
+    next.add(city)
+    return { poppingCities: next }
+  }),
+  removePoppingCity: (city) => set((s) => {
+    const next = new Set(s.poppingCities)
+    next.delete(city)
+    return { poppingCities: next }
+  }),
 }))
