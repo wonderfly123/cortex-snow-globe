@@ -51,61 +51,63 @@ const getConnectionConfig = (): snowflake.ConnectionOptions => {
   return config
 }
 
-// Connection pool
-let connection: snowflake.Connection | null = null
-let connectionPromise: Promise<snowflake.Connection> | null = null
+// Connection pool — multiple connections so slow AI queries don't block fast ones
+const POOL_SIZE = 3
+const pool: snowflake.Connection[] = []
+const poolPromises: Promise<snowflake.Connection>[] = []
+let nextIndex = 0
 
-export async function getConnection(): Promise<snowflake.Connection> {
-  // Return existing connection if available
-  if (connection) {
-    return connection
-  }
-  
-  // If connection is being established, wait for it
-  if (connectionPromise) {
-    return connectionPromise
-  }
-
+function createConnection(): Promise<snowflake.Connection> {
   const config = getConnectionConfig()
   const conn = snowflake.createConnection(config)
-  
-  console.log('Connecting to Snowflake...', { 
-    account: config.account, 
+
+  console.log('Connecting to Snowflake...', {
+    account: config.account,
     user: config.username,
     authenticator: config.authenticator || 'password'
   })
 
-  // Use connectAsync for external browser auth
   if (config.authenticator === 'EXTERNALBROWSER') {
-    connectionPromise = conn.connectAsync((_err, _conn) => {})
+    return conn.connectAsync((_err, _conn) => {})
       .then(() => {
         console.log('Connected to Snowflake successfully')
-        connection = conn
         return conn
       })
       .catch((err: Error) => {
         console.error('Failed to connect to Snowflake:', err.message)
-        connectionPromise = null
         throw err
       })
   } else {
-    // Use callback-based connect for other auth methods
-    connectionPromise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       conn.connect((err, conn) => {
         if (err) {
           console.error('Failed to connect to Snowflake:', err.message)
-          connectionPromise = null
           reject(err)
         } else {
           console.log('Connected to Snowflake successfully')
-          connection = conn
           resolve(conn)
         }
       })
     })
   }
-  
-  return connectionPromise
+}
+
+export async function getConnection(): Promise<snowflake.Connection> {
+  const idx = nextIndex % POOL_SIZE
+  nextIndex++
+
+  if (pool[idx]) {
+    return pool[idx]
+  }
+
+  if (!poolPromises[idx]) {
+    poolPromises[idx] = createConnection().then(conn => {
+      pool[idx] = conn
+      return conn
+    })
+  }
+
+  return poolPromises[idx]
 }
 
 export interface QueryResult<T> {
