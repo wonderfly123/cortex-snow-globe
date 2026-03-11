@@ -135,7 +135,7 @@ ${dataStr}
 Provide a 3-4 sentence insight that directly answers the question above. Be specific with numbers and percentages from the data. Include one actionable business recommendation. Do not use bullet points or markdown formatting — write in flowing prose.`
 
     const result = await executeQuery<CortexResult>(`
-      SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-large2', ?) AS AI_NARRATIVE
+      SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-7b', ?) AS AI_NARRATIVE
     `, [prompt])
 
     let insight = result[0]?.AI_NARRATIVE || 'Unable to generate insight.'
