@@ -14,11 +14,9 @@ export async function GET() {
   try {
     const result = await withCache('menu-types', async () => {
       const rows = await executeQuery<MenuTypesRow>(`
-        SELECT COUNTRY, YEAR(ORDER_TS_DATE) AS YEAR, MENU_TYPE, SUM(PRICE) AS TOTAL_SALES,
-          RANK() OVER (PARTITION BY COUNTRY, YEAR(ORDER_TS_DATE) ORDER BY SUM(PRICE) DESC) AS TYPE_RANK
-        FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
-        GROUP BY 1, 2, 3
-        QUALIFY TYPE_RANK <= 3
+        SELECT COUNTRY, YEAR, MENU_TYPE, TOTAL_SALES, TYPE_RANK
+        FROM TAKEHOME_DB.ANALYTICS.MENU_TYPES_DT
+        WHERE TYPE_RANK <= 3
         ORDER BY COUNTRY, YEAR, TYPE_RANK
       `)
       return {

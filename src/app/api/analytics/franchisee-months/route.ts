@@ -23,24 +23,14 @@ export async function GET() {
     const result = await withCache('franchisee-months', async () => {
       const [franchiseeRows, monthlyRows] = await Promise.all([
         executeQuery<FranchiseeMonthsRow>(`
-          SELECT COUNTRY, YEAR(ORDER_TS_DATE) AS YEAR, FRANCHISEE_NAME,
-            TO_CHAR(ORDER_TS_DATE, 'YYYY-MM') AS MONTH_LABEL,
-            SUM(PRICE) AS MONTHLY_SALES,
-            RANK() OVER (PARTITION BY COUNTRY, YEAR(ORDER_TS_DATE), FRANCHISEE_NAME ORDER BY SUM(PRICE) DESC) AS MONTH_RANK
-          FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
-          WHERE FRANCHISE_FLAG = 1
-          GROUP BY 1, 2, 3, 4
+          SELECT COUNTRY, YEAR, FRANCHISEE_NAME, MONTH_LABEL, MONTHLY_SALES, MONTH_RANK
+          FROM TAKEHOME_DB.ANALYTICS.FRANCHISEE_MONTHS_DT
           ORDER BY COUNTRY, YEAR, FRANCHISEE_NAME, MONTH_LABEL
         `),
         executeQuery<MonthlyAggRow>(`
-          SELECT MONTH(ORDER_TS_DATE) AS MONTH_NUM,
-            MONTHNAME(ORDER_TS_DATE) AS MONTH_NAME,
-            SUM(PRICE) AS TOTAL_SALES,
-            COUNT(DISTINCT ORDER_ID) AS TOTAL_ORDERS
-          FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
-          WHERE FRANCHISE_FLAG = 1
-          GROUP BY 1, 2
-          ORDER BY 1
+          SELECT MONTH_NUM, MONTH_NAME, TOTAL_SALES, TOTAL_ORDERS
+          FROM TAKEHOME_DB.ANALYTICS.FRANCHISEE_MONTHLY_AGG_DT
+          ORDER BY MONTH_NUM
         `),
       ])
 
