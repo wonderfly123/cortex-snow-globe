@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useGlobeStore, RecentOrder, RecentOrderItem } from '@/lib/store'
 
-const POLL_INTERVAL = 5000
+const POLL_INTERVAL = 15000
 const TOAST_TTL = 10000 // 10 seconds
 
 export function useOrderFeed() {

@@ -56,7 +56,7 @@ export default function Home() {
     setTopItems([])
     setDataLoading(true)
     setNarrative('')
-    setNarrativeLoading(true)
+    setNarrativeLoading(false)
 
     fetch(`/api/city?name=${encodeURIComponent(selectedCity)}&country=${encodeURIComponent(selectedCountry || '')}`)
       .then((r) => r.json())
@@ -67,16 +67,6 @@ export default function Home() {
       })
       .catch(console.error)
       .finally(() => setDataLoading(false))
-
-    fetch('/api/cortex/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ city: selectedCity, country: selectedCountry }),
-    })
-      .then((r) => r.json())
-      .then((data) => setNarrative(data.narrative || ''))
-      .catch(() => setNarrative('Unable to generate AI insight.'))
-      .finally(() => setNarrativeLoading(false))
   }, [selectedCity, selectedCountry])
 
   return (

@@ -14,9 +14,24 @@ export default function CityTab() {
   const topItems = useGlobeStore((s) => s.topItems)
   const narrative = useGlobeStore((s) => s.narrative)
   const narrativeLoading = useGlobeStore((s) => s.narrativeLoading)
+  const setNarrative = useGlobeStore((s) => s.setNarrative)
+  const setNarrativeLoading = useGlobeStore((s) => s.setNarrativeLoading)
   const dataLoading = useGlobeStore((s) => s.dataLoading)
   const selectCity = useGlobeStore((s) => s.selectCity)
   const setCameraTarget = useGlobeStore((s) => s.setCameraTarget)
+
+  function generateNarrative() {
+    setNarrativeLoading(true)
+    fetch('/api/cortex/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: selectedCity, country: cityKPI?.country }),
+    })
+      .then((r) => r.json())
+      .then((data) => setNarrative(data.narrative || ''))
+      .catch(() => setNarrative('Unable to generate AI insight.'))
+      .finally(() => setNarrativeLoading(false))
+  }
 
   const sortedCities = useMemo(
     () => [...cities].sort((a, b) => (b.totalSales ?? 0) - (a.totalSales ?? 0)),
@@ -117,14 +132,24 @@ export default function CityTab() {
 
           {/* Column 3: AI Insight */}
           <div>
-            <p className="text-xs text-slate-400 mb-1">AI Insight</p>
             {narrativeLoading ? (
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <div className="w-3 h-3 border border-cyan-400 border-t-transparent rounded-full animate-spin" />
                 Generating insight...
               </div>
+            ) : narrative ? (
+              <>
+                <p className="text-xs text-slate-400 mb-1">AI Insight</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{narrative}</p>
+              </>
             ) : (
-              <p className="text-xs text-slate-300 leading-relaxed">{narrative}</p>
+              <button
+                onClick={generateNarrative}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors text-xs text-cyan-400 font-mono cursor-pointer"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                Generate AI Insight
+              </button>
             )}
           </div>
         </div>
