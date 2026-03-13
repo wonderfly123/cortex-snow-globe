@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
             ORDER_ID, ORDER_TS, PRIMARY_CITY, COUNTRY,
             MENU_ITEM_NAME, TRUCK_BRAND_NAME, QUANTITY, PRICE, ORDER_TOTAL
           FROM RAW.RECENT_POS_ORDERS
-          WHERE ORDER_TS > DATEADD('second', -30, CURRENT_TIMESTAMP())
+          WHERE ORDER_TS_DATE = '2025-09-30'
           ORDER BY ORDER_TS DESC
           LIMIT 50`,
       since ? [since] : undefined

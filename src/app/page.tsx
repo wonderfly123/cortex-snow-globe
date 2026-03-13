@@ -77,6 +77,7 @@ export default function Home() {
       {/* Top-left badge */}
       <div className="fixed top-6 left-6 z-20 glass rounded-xl px-4 py-2.5">
         <h1 className="text-base font-semibold text-white">Tastybytes Global</h1>
+        <p className="text-[10px] text-cyan-400/70 font-mono mt-0.5">September 30, 2025</p>
         <p className="text-[11px] text-slate-400 mt-0.5">Global food truck analytics, powered by Snowflake Cortex</p>
       </div>
 

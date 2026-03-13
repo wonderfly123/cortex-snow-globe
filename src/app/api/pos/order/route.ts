@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO RAW.ORDER_HEADER (
         ORDER_ID, TRUCK_ID, LOCATION_ID, ORDER_TS,
         ORDER_AMOUNT, ORDER_TAX_AMOUNT, ORDER_DISCOUNT_AMOUNT, ORDER_TOTAL
-      ) SELECT ?, ?, ?, CURRENT_TIMESTAMP(), ?, NULL, NULL, ?`,
+      ) SELECT ?, ?, ?, DATEADD('second', UNIFORM(28800, 72000, RANDOM()), '2025-09-30'::TIMESTAMP), ?, NULL, NULL, ?`,
       [orderId, truckId, locationId, orderAmount, orderTotal]
     )
 
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
           FRANCHISEE_NAME, LOCATION_ID, MENU_ITEM_ID, MENU_ITEM_NAME,
           QUANTITY, UNIT_PRICE, PRICE, ORDER_AMOUNT,
           ORDER_TAX_AMOUNT, ORDER_DISCOUNT_AMOUNT, ORDER_TOTAL
-        ) SELECT ?, ?, CURRENT_TIMESTAMP(), CURRENT_DATE(),
-          YEAR(CURRENT_TIMESTAMP()), MONTH(CURRENT_TIMESTAMP()),
+        ) SELECT ?, ?, DATEADD('second', UNIFORM(28800, 72000, RANDOM()), '2025-09-30'::TIMESTAMP), '2025-09-30'::DATE,
+          2025, 9,
           ?, ?, 'Kitakata Ramen Bar', 'Ramen',
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
