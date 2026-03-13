@@ -25,11 +25,39 @@ interface TopItemRow {
   ITEM_RANK: number
 }
 
+function buildResponse(kpiRows: CityKPIRow[], trendRows: MonthlyTrendRow[], topItemsRows: TopItemRow[]) {
+  const kpi = kpiRows[0] ? {
+    city: kpiRows[0].CITY,
+    country: kpiRows[0].COUNTRY,
+    totalOrders: kpiRows[0].TOTAL_ORDERS,
+    totalSales: kpiRows[0].TOTAL_SALES,
+    avgOrderValue: kpiRows[0].AVG_ORDER_VALUE,
+    activeTrucks: kpiRows[0].ACTIVE_TRUCKS,
+    uniqueItemsSold: kpiRows[0].UNIQUE_ITEMS_SOLD,
+  } : null
+
+  const trend = trendRows.map(row => ({
+    month: String(row.MONTH).replace(/"/g, ''),
+    orders: row.ORDERS,
+    sales: row.SALES,
+  }))
+
+  const topItems = topItemsRows.map(row => ({
+    name: row.MENU_ITEM_NAME,
+    quantity: row.TOTAL_QUANTITY,
+    revenue: row.TOTAL_REVENUE,
+    rank: row.ITEM_RANK,
+  }))
+
+  return { kpi, trend, topItems }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const cityName = searchParams.get('name')
   const country = searchParams.get('country')
-  
+  const days = searchParams.get('days') // null = all time, or 1/7/30/60/90
+
   if (!cityName) {
     return NextResponse.json(
       { error: 'City name is required' },
@@ -37,9 +65,59 @@ export async function GET(request: Request) {
     )
   }
 
+  const DEMO_DATE = '2025-09-30'
+
   try {
-    const cacheKey = `city:${cityName}:${country || ''}`
+    const cacheKey = `city:${cityName}:${country || ''}:${days || 'all'}`
     const result = await withCache(cacheKey, async () => {
+      // For timeframe-filtered queries, use the flattened view with date filters
+      if (days) {
+        const cityFilter = country
+          ? 'PRIMARY_CITY = ? AND COUNTRY = ?'
+          : 'PRIMARY_CITY = ?'
+        const dateFilter = `ORDER_TS_DATE >= DATEADD('day', -${parseInt(days)}, '${DEMO_DATE}'::DATE) AND ORDER_TS_DATE <= '${DEMO_DATE}'::DATE`
+        const baseParams = country ? [cityName, country] : [cityName]
+
+        const [kpiRows, trendRows, topItemsRows] = await Promise.all([
+          executeQuery<CityKPIRow>(`
+            SELECT
+              PRIMARY_CITY AS CITY, COUNTRY,
+              COUNT(DISTINCT ORDER_ID) AS TOTAL_ORDERS,
+              SUM(PRICE) AS TOTAL_SALES,
+              ROUND(AVG(ORDER_TOTAL), 2) AS AVG_ORDER_VALUE,
+              COUNT(DISTINCT TRUCK_ID) AS ACTIVE_TRUCKS,
+              COUNT(DISTINCT MENU_ITEM_NAME) AS UNIQUE_ITEMS_SOLD
+            FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
+            WHERE ${cityFilter} AND ${dateFilter}
+            GROUP BY PRIMARY_CITY, COUNTRY
+          `, baseParams),
+          executeQuery<MonthlyTrendRow>(`
+            SELECT
+              DATE_TRUNC('day', ORDER_TS_DATE) AS MONTH,
+              COUNT(DISTINCT ORDER_ID) AS ORDERS,
+              SUM(PRICE) AS SALES
+            FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
+            WHERE ${cityFilter} AND ${dateFilter}
+            GROUP BY MONTH ORDER BY MONTH
+          `, baseParams),
+          executeQuery<TopItemRow>(`
+            SELECT
+              MENU_ITEM_NAME,
+              SUM(QUANTITY) AS TOTAL_QUANTITY,
+              SUM(PRICE) AS TOTAL_REVENUE,
+              ROW_NUMBER() OVER (ORDER BY SUM(PRICE) DESC) AS ITEM_RANK
+            FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
+            WHERE ${cityFilter} AND ${dateFilter}
+            GROUP BY MENU_ITEM_NAME
+            ORDER BY TOTAL_REVENUE DESC
+            LIMIT 5
+          `, baseParams),
+        ])
+
+        return buildResponse(kpiRows, trendRows, topItemsRows)
+      }
+
+      // All-time: use pre-aggregated DTs
       const [kpiRows, trendRows, topItemsRows] = await Promise.all([
         executeQuery<CityKPIRow>(`
           SELECT
@@ -66,30 +144,7 @@ export async function GET(request: Request) {
         `, country ? [cityName, country] : [cityName]),
       ])
 
-      const kpi = kpiRows[0] ? {
-        city: kpiRows[0].CITY,
-        country: kpiRows[0].COUNTRY,
-        totalOrders: kpiRows[0].TOTAL_ORDERS,
-        totalSales: kpiRows[0].TOTAL_SALES,
-        avgOrderValue: kpiRows[0].AVG_ORDER_VALUE,
-        activeTrucks: kpiRows[0].ACTIVE_TRUCKS,
-        uniqueItemsSold: kpiRows[0].UNIQUE_ITEMS_SOLD,
-      } : null
-
-      const trend = trendRows.map(row => ({
-        month: String(row.MONTH).replace(/"/g, ''),
-        orders: row.ORDERS,
-        sales: row.SALES,
-      }))
-
-      const topItems = topItemsRows.map(row => ({
-        name: row.MENU_ITEM_NAME,
-        quantity: row.TOTAL_QUANTITY,
-        revenue: row.TOTAL_REVENUE,
-        rank: row.ITEM_RANK,
-      }))
-
-      return { kpi, trend, topItems }
+      return buildResponse(kpiRows, trendRows, topItemsRows)
     })
 
     return NextResponse.json(result)

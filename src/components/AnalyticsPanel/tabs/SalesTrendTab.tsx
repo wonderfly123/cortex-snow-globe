@@ -4,13 +4,15 @@ import React, { useMemo, useState, useCallback } from 'react'
 import { useGlobeStore, type SalesTrendRow } from '@/lib/store'
 import { useAnalyticsData } from '../useAnalyticsData'
 import { COLORS, tooltipStyle, axisStyle } from '../ChartTheme'
-import { MONTH_LABELS } from '../TimeSlider'
-import { formatCurrency } from '@/lib/cityData'
+import { useTimeLabels } from '../TimeSlider'
+import { formatCurrency, formatNumber } from '@/lib/cityData'
 import {
   LineChart,
   Line,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -42,10 +44,12 @@ export default function SalesTrendTab() {
     setSalesTrendData,
   )
 
+  const labels = useTimeLabels()
   const [visibleCountries, setVisibleCountries] = useState<Set<string> | null>(null)
 
-  const startMonth = MONTH_LABELS[timeRange[0]]
-  const endMonth = MONTH_LABELS[timeRange[1]]
+  const sliderMax = Math.max(labels.length - 1, 0)
+  const startMonth = labels[Math.min(timeRange[0], sliderMax)] ?? ''
+  const endMonth = labels[Math.min(timeRange[1], sliderMax)] ?? ''
 
   const filtered = useMemo(() => {
     if (!salesTrendData) return []
@@ -130,7 +134,14 @@ export default function SalesTrendTab() {
 
   const formatMonth = (m: string | number | React.ReactNode) => {
     if (typeof m !== 'string') return String(m)
-    const [y, mo] = m.split('-')
+    const parts = m.split('-')
+    if (parts.length === 3) {
+      // Daily: YYYY-MM-DD → "Sep 24"
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
+    // Monthly: YYYY-MM → "Sep '25"
+    const [y, mo] = parts
     const abbrev = new Date(Number(y), Number(mo) - 1).toLocaleString('en-US', { month: 'short' })
     return `${abbrev} '${y.slice(2)}`
   }
@@ -164,6 +175,20 @@ export default function SalesTrendTab() {
             <Tooltip contentStyle={tooltipStyle} labelFormatter={formatMonth} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), 'Revenue']} />
             <Area type="monotone" dataKey="sales" stroke={COLORS.primary} strokeWidth={2} fill="url(#allGrad)" />
           </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Order Volume */}
+      <div>
+        <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-mono mb-1">Order Volume</p>
+        <ResponsiveContainer width="100%" height={140}>
+          <BarChart data={allCountriesData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+            <XAxis dataKey="month" tickFormatter={formatMonth} tick={axisStyle} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1e6).toFixed(1)}M` : v >= 1000 ? `${(v / 1e3).toFixed(0)}K` : String(v)} tick={axisStyle} tickLine={false} axisLine={false} width={50} />
+            <Tooltip contentStyle={tooltipStyle} labelFormatter={formatMonth} formatter={(value: number | undefined) => [formatNumber(value ?? 0), 'Orders']} />
+            <Bar dataKey="orders" fill="#a78bfa" radius={[3, 3, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
 

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { executeQuery } from '@/lib/snowflake'
 import { withCache } from '@/lib/cache'
 
+const DEMO_DATE = '2025-09-30'
+
 interface TopBrandsRow {
   YEAR: number
   TRUCK_BRAND_NAME: string
@@ -15,9 +17,32 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const country = searchParams.get('country')
-    const cacheKey = `top-brands:${country || 'all'}`
+    const days = searchParams.get('days')
+    const cacheKey = `top-brands:${country || 'all'}:${days || 'all'}`
 
     const result = await withCache(cacheKey, async () => {
+      if (days) {
+        const dateFilter = `ORDER_TS_DATE >= DATEADD('day', -${parseInt(days)}, '${DEMO_DATE}'::DATE) AND ORDER_TS_DATE <= '${DEMO_DATE}'::DATE`
+        const countryFilter = country ? `AND COUNTRY = ?` : ''
+        const rows = await executeQuery<TopBrandsRow>(`
+          SELECT YEAR(ORDER_TS_DATE) AS YEAR, TRUCK_BRAND_NAME,
+            ${country ? 'COUNTRY' : 'NULL AS COUNTRY'},
+            SUM(PRICE) AS TOTAL_SALES,
+            COUNT(DISTINCT ORDER_ID) AS TOTAL_ORDERS,
+            ROW_NUMBER() OVER (PARTITION BY YEAR(ORDER_TS_DATE) ORDER BY SUM(PRICE) DESC) AS BRAND_RANK
+          FROM TAKEHOME_DB.HARMONIZED.POS_FLATTENED_V
+          WHERE ${dateFilter} ${countryFilter}
+          GROUP BY YEAR(ORDER_TS_DATE), TRUCK_BRAND_NAME${country ? ', COUNTRY' : ''}
+          QUALIFY BRAND_RANK <= 5
+          ORDER BY YEAR, BRAND_RANK
+        `, country ? [country] : undefined)
+        return { data: rows.map(row => ({
+          year: row.YEAR, brand: row.TRUCK_BRAND_NAME,
+          totalSales: row.TOTAL_SALES, totalOrders: row.TOTAL_ORDERS,
+          brandRank: row.BRAND_RANK, country: row.COUNTRY,
+        })) }
+      }
+
       let query: string
       if (country) {
         query = `
@@ -42,12 +67,9 @@ export async function GET(request: Request) {
       const rows = await executeQuery<TopBrandsRow>(query, country ? [country] : undefined)
       return {
         data: rows.map(row => ({
-          year: row.YEAR,
-          brand: row.TRUCK_BRAND_NAME,
-          totalSales: row.TOTAL_SALES,
-          totalOrders: row.TOTAL_ORDERS,
-          brandRank: row.BRAND_RANK,
-          country: row.COUNTRY,
+          year: row.YEAR, brand: row.TRUCK_BRAND_NAME,
+          totalSales: row.TOTAL_SALES, totalOrders: row.TOTAL_ORDERS,
+          brandRank: row.BRAND_RANK, country: row.COUNTRY,
         }))
       }
     })

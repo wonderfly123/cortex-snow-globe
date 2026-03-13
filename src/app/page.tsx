@@ -25,6 +25,7 @@ export default function Home() {
   const setTopItems = useGlobeStore((s) => s.setTopItems)
   const setNarrative = useGlobeStore((s) => s.setNarrative)
   const setNarrativeLoading = useGlobeStore((s) => s.setNarrativeLoading)
+  const cityTimeframe = useGlobeStore((s) => s.cityTimeframe)
 
   useOrderFeed()
 
@@ -58,7 +59,13 @@ export default function Home() {
     setNarrative('')
     setNarrativeLoading(false)
 
-    fetch(`/api/city?name=${encodeURIComponent(selectedCity)}&country=${encodeURIComponent(selectedCountry || '')}`)
+    const params = new URLSearchParams({
+      name: selectedCity,
+      country: selectedCountry || '',
+    })
+    if (cityTimeframe !== null) params.set('days', String(cityTimeframe))
+
+    fetch(`/api/city?${params}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.kpi) setCityKPI(data.kpi)
@@ -67,7 +74,7 @@ export default function Home() {
       })
       .catch(console.error)
       .finally(() => setDataLoading(false))
-  }, [selectedCity, selectedCountry])
+  }, [selectedCity, selectedCountry, cityTimeframe])
 
   return (
     <main className="w-screen h-screen bg-[#0a0a1a]">

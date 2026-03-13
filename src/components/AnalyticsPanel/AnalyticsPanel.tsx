@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import React, { useEffect, useRef, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useGlobeStore } from '@/lib/store'
 import type { AnalyticsTab } from '@/lib/store'
@@ -25,10 +25,22 @@ const MIN_HEIGHT = 0
 const MAX_HEIGHT_RATIO = 0.85
 const TAB_BAR_HEIGHT = 48
 
+const TIMEFRAMES = [
+  { label: '1D', days: 1 },
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: '60D', days: 60 },
+  { label: '90D', days: 90 },
+  { label: 'All', days: null },
+] as const
+
 export function AnalyticsPanel() {
   const analyticsOpen = useGlobeStore((s) => s.analyticsOpen)
   const setAnalyticsOpen = useGlobeStore((s) => s.setAnalyticsOpen)
   const analyticsTab = useGlobeStore((s) => s.analyticsTab)
+  const analyticsTimeframe = useGlobeStore((s) => s.analyticsTimeframe)
+  const setAnalyticsTimeframe = useGlobeStore((s) => s.setAnalyticsTimeframe)
+  const clearAnalyticsCache = useGlobeStore((s) => s.clearAnalyticsCache)
 
   const [contentHeight, setContentHeight] = useState(0)
   const dragging = useRef(false)
@@ -85,6 +97,11 @@ export function AnalyticsPanel() {
     }
   }, [contentHeight, analyticsOpen, setAnalyticsOpen])
 
+  const handleTimeframeChange = useCallback((days: number | null) => {
+    setAnalyticsTimeframe(days)
+    clearAnalyticsCache()
+  }, [setAnalyticsTimeframe, clearAnalyticsCache])
+
   const TabContent = tabComponents[analyticsTab]
   const isOpen = contentHeight > 0
 
@@ -100,9 +117,26 @@ export function AnalyticsPanel() {
         <div className="w-10 h-1 rounded-full bg-slate-600" />
       </div>
 
-      {/* Tab bar */}
-      <div className="border-b border-white/10">
-        <AnalyticsTabBar />
+      {/* Tab bar + timeframe filter */}
+      <div className="border-b border-white/10 flex items-center">
+        <div className="flex-1">
+          <AnalyticsTabBar />
+        </div>
+        <div className="flex gap-1 px-4">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf.label}
+              onClick={() => handleTimeframeChange(tf.days)}
+              className={`px-2 py-1 rounded text-[10px] font-mono transition-colors cursor-pointer ${
+                analyticsTimeframe === tf.days
+                  ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/40'
+                  : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {tf.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content area */}

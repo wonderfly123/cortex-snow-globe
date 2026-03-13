@@ -22,19 +22,21 @@ export default function FranchiseeTab() {
   const franchiseeData = useGlobeStore((s) => s.franchiseeData)
   const setFranchiseeData = useGlobeStore((s) => s.setFranchiseeData)
 
+  const analyticsTimeframe = useGlobeStore((s) => s.analyticsTimeframe)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (franchiseeData !== null) return
     setLoading(true)
-    fetch('/api/analytics/franchisee-months')
+    const params = analyticsTimeframe !== null ? `?days=${analyticsTimeframe}` : ''
+    fetch(`/api/analytics/franchisee-months${params}`)
       .then((r) => r.json())
       .then((res) => {
         if (res.data) setFranchiseeData(res.data)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [franchiseeData, analyticsTimeframe]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const countries = useMemo(() => {
     if (!franchiseeData) return []

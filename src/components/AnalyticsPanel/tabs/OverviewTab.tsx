@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useGlobeStore, type SalesTrendRow } from '@/lib/store'
-import { MONTH_LABELS } from '../TimeSlider'
+import { useTimeLabels } from '../TimeSlider'
 import { useAnalyticsData } from '../useAnalyticsData'
 import { COLORS, tooltipStyle, axisStyle } from '../ChartTheme'
 import { formatCurrency } from '@/lib/cityData'
@@ -27,11 +27,13 @@ export default function OverviewTab() {
     setSalesTrendData,
   )
 
+  const labels = useTimeLabels()
+
   // Aggregate monthly sales: sum all countries per month, filtered by timeRange
   const sparklineData = useMemo(() => {
     if (!data) return []
 
-    const filteredMonths = MONTH_LABELS.slice(timeRange[0], timeRange[1] + 1)
+    const filteredMonths = labels.slice(timeRange[0], timeRange[1] + 1)
     const monthSet = new Set(filteredMonths)
 
     const monthMap = new Map<string, number>()
@@ -46,7 +48,7 @@ export default function OverviewTab() {
         month,
         sales: monthMap.get(month)!,
       }))
-  }, [data, timeRange])
+  }, [data, timeRange, labels])
 
   return (
     <div className="space-y-4">

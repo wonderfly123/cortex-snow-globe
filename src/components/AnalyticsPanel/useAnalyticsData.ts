@@ -1,18 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useGlobeStore } from '@/lib/store'
 
 /**
  * Lazy-fetch hook with Zustand store cache.
- *
- * On first render, if `data` is null, fetches from `/api/analytics/{tabName}`
- * and stores the result via `setter`. Subsequent renders skip the fetch
- * because the store already holds the cached data.
- *
- * @param tabName   API route segment (e.g. 'sales-trend')
- * @param data      Current cached value from the store (null = not yet loaded)
- * @param setter    Store setter for caching the fetched result
+ * Supports optional timeframe filtering via `analyticsTimeframe` from the store.
  */
 export function useAnalyticsData<T>(
   tabName: string,
@@ -21,10 +14,19 @@ export function useAnalyticsData<T>(
 ): { data: T[] | null; loading: boolean; error: string | null } {
   const analyticsLoading = useGlobeStore((s) => s.analyticsLoading)
   const setAnalyticsLoading = useGlobeStore((s) => s.setAnalyticsLoading)
+  const analyticsTimeframe = useGlobeStore((s) => s.analyticsTimeframe)
+  const prevTimeframe = useRef(analyticsTimeframe)
 
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // If timeframe changed, clear cached data to force re-fetch
+    if (prevTimeframe.current !== analyticsTimeframe) {
+      prevTimeframe.current = analyticsTimeframe
+      setter(null)
+      return
+    }
+
     // Already cached — nothing to do
     if (data !== null) return
 
@@ -35,7 +37,8 @@ export function useAnalyticsData<T>(
       setError(null)
 
       try {
-        const res = await fetch(`/api/analytics/${tabName}`)
+        const params = analyticsTimeframe !== null ? `?days=${analyticsTimeframe}` : ''
+        const res = await fetch(`/api/analytics/${tabName}${params}`)
         if (!res.ok) {
           throw new Error(`Failed to fetch ${tabName}: ${res.status}`)
         }
@@ -60,7 +63,7 @@ export function useAnalyticsData<T>(
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabName, data])
+  }, [tabName, data, analyticsTimeframe])
 
   return {
     data,

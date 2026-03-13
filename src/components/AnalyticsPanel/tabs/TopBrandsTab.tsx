@@ -58,6 +58,7 @@ export default function TopBrandsTab() {
     setTopBrandsData,
   )
 
+  const analyticsTimeframe = useGlobeStore((s) => s.analyticsTimeframe)
   const [selectedCountry, setSelectedCountry] = useState('All Countries')
   const [countryData, setCountryData] = useState<TopBrandRow[] | null>(null)
   const [countryLoading, setCountryLoading] = useState(false)
@@ -72,7 +73,9 @@ export default function TopBrandsTab() {
     let cancelled = false
     setCountryLoading(true)
 
-    fetch(`/api/analytics/top-brands?country=${encodeURIComponent(selectedCountry)}`)
+    const params = new URLSearchParams({ country: selectedCountry })
+    if (analyticsTimeframe !== null) params.set('days', String(analyticsTimeframe))
+    fetch(`/api/analytics/top-brands?${params}`)
       .then((r) => r.json())
       .then((json) => {
         if (!cancelled) setCountryData(json.data ?? json)

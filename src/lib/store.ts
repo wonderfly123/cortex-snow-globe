@@ -129,6 +129,10 @@ interface GlobeStore {
   topItems: TopItem[]
   setTopItems: (items: TopItem[]) => void
 
+  // City timeframe filter
+  cityTimeframe: number | null // null = all time, or days (1, 7, 30, 60, 90)
+  setCityTimeframe: (days: number | null) => void
+
   // AI narrative
   narrative: string
   setNarrative: (narrative: string) => void
@@ -154,6 +158,9 @@ interface GlobeStore {
   setTimeRange: (range: [number, number]) => void
   analyticsLoading: boolean
   setAnalyticsLoading: (loading: boolean) => void
+  analyticsTimeframe: number | null // null = all time, or days (1, 7, 30, 60, 90)
+  setAnalyticsTimeframe: (days: number | null) => void
+  clearAnalyticsCache: () => void
 
   // Analytics data cache
   salesTrendData: SalesTrendRow[] | null
@@ -196,7 +203,7 @@ export const useGlobeStore = create<GlobeStore>((set) => ({
 
   selectedCity: null,
   selectedCountry: null,
-  selectCity: (city, country = null) => set({ selectedCity: city, selectedCountry: country }),
+  selectCity: (city, country = null) => set({ selectedCity: city, selectedCountry: country, cityTimeframe: null }),
 
   cityKPI: null,
   setCityKPI: (kpi) => set({ cityKPI: kpi }),
@@ -204,6 +211,9 @@ export const useGlobeStore = create<GlobeStore>((set) => ({
   setMonthlyTrend: (trend) => set({ monthlyTrend: trend }),
   topItems: [],
   setTopItems: (items) => set({ topItems: items }),
+
+  cityTimeframe: null,
+  setCityTimeframe: (days) => set({ cityTimeframe: days }),
 
   narrative: '',
   setNarrative: (narrative) => set({ narrative }),
@@ -227,6 +237,18 @@ export const useGlobeStore = create<GlobeStore>((set) => ({
   setTimeRange: (range) => set({ timeRange: range }),
   analyticsLoading: false,
   setAnalyticsLoading: (loading) => set({ analyticsLoading: loading }),
+  analyticsTimeframe: null,
+  setAnalyticsTimeframe: (days) => set({ analyticsTimeframe: days }),
+  clearAnalyticsCache: () => set({
+    salesTrendData: null,
+    topBrandsData: null,
+    menuTypesData: null,
+    franchiseeData: null,
+    orderDistributionData: null,
+    orderPatternsData: null,
+    dowPatternsData: null,
+    hourPatternsData: null,
+  }),
 
   // Analytics data cache
   salesTrendData: null,

@@ -2,14 +2,21 @@
 
 import { useGlobeStore } from '@/lib/store'
 import { formatCurrency, formatNumber } from '@/lib/cityData'
-import { Sparkline } from './Sparkline'
 import { X, DollarSign, ShoppingCart, TrendingUp, Truck } from 'lucide-react'
+
+const TIMEFRAMES = [
+  { label: '1D', days: 1 },
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: '60D', days: 60 },
+  { label: '90D', days: 90 },
+  { label: 'All', days: null },
+] as const
 
 export function CityCard() {
   const selectedCity = useGlobeStore((s) => s.selectedCity)
   const selectedCountry = useGlobeStore((s) => s.selectedCountry)
   const cityKPI = useGlobeStore((s) => s.cityKPI)
-  const monthlyTrend = useGlobeStore((s) => s.monthlyTrend)
   const topItems = useGlobeStore((s) => s.topItems)
   const narrative = useGlobeStore((s) => s.narrative)
   const narrativeLoading = useGlobeStore((s) => s.narrativeLoading)
@@ -18,6 +25,8 @@ export function CityCard() {
   const dataLoading = useGlobeStore((s) => s.dataLoading)
   const selectCity = useGlobeStore((s) => s.selectCity)
   const setCameraTarget = useGlobeStore((s) => s.setCameraTarget)
+  const cityTimeframe = useGlobeStore((s) => s.cityTimeframe)
+  const setCityTimeframe = useGlobeStore((s) => s.setCityTimeframe)
 
   function generateNarrative() {
     setNarrativeLoading(true)
@@ -54,6 +63,23 @@ export function CityCard() {
         </button>
       </div>
 
+      {/* Timeframe selector */}
+      <div className="flex gap-1 mb-4">
+        {TIMEFRAMES.map((tf) => (
+          <button
+            key={tf.label}
+            onClick={() => setCityTimeframe(tf.days)}
+            className={`flex-1 px-1.5 py-1 rounded text-[10px] font-mono transition-colors cursor-pointer ${
+              cityTimeframe === tf.days
+                ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/40'
+                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {tf.label}
+          </button>
+        ))}
+      </div>
+
       {dataLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
@@ -67,14 +93,6 @@ export function CityCard() {
             <KPICard icon={<TrendingUp className="w-3.5 h-3.5" />} label="Avg Order" value={formatCurrency(cityKPI.avgOrderValue)} />
             <KPICard icon={<Truck className="w-3.5 h-3.5" />} label="Trucks" value={String(cityKPI.activeTrucks)} />
           </div>
-
-          {/* Sparkline */}
-          {monthlyTrend.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs text-slate-400 mb-1">Monthly Sales Trend</p>
-              <Sparkline data={monthlyTrend} />
-            </div>
-          )}
 
           {/* Top Items */}
           {topItems.length > 0 && (

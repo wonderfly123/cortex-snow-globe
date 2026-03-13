@@ -1,26 +1,28 @@
 'use client'
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useEffect } from 'react'
 import { useGlobeStore } from '@/lib/store'
-
-/** 21 months: 2024-01 through 2025-09 */
-const MONTH_LABELS: string[] = (() => {
-  const labels: string[] = []
-  for (let year = 2024; year <= 2025; year++) {
-    const endMonth = year === 2025 ? 9 : 12
-    for (let m = 1; m <= endMonth; m++) {
-      labels.push(`${year}-${String(m).padStart(2, '0')}`)
-    }
-  }
-  return labels
-})()
-
-const SLIDER_MIN = 0
-const SLIDER_MAX = MONTH_LABELS.length - 1 // 22
 
 export default function TimeSlider() {
   const timeRange = useGlobeStore((s) => s.timeRange)
   const setTimeRange = useGlobeStore((s) => s.setTimeRange)
+  const salesTrendData = useGlobeStore((s) => s.salesTrendData)
+
+  // Derive labels from actual data
+  const labels = useMemo(() => {
+    if (!salesTrendData || salesTrendData.length === 0) return []
+    const unique = [...new Set(salesTrendData.map((r) => r.month))].sort()
+    return unique
+  }, [salesTrendData])
+
+  const sliderMax = Math.max(labels.length - 1, 0)
+
+  // Reset timeRange when labels change
+  useEffect(() => {
+    if (labels.length > 0) {
+      setTimeRange([0, labels.length - 1])
+    }
+  }, [labels.length, setTimeRange])
 
   const [minVal, maxVal] = timeRange
 
@@ -40,18 +42,15 @@ export default function TimeSlider() {
     [minVal, setTimeRange],
   )
 
-  /** Percentage positions for the gradient fill between thumbs */
-  const leftPct = useMemo(() => (minVal / SLIDER_MAX) * 100, [minVal])
-  const rightPct = useMemo(() => (maxVal / SLIDER_MAX) * 100, [maxVal])
+  const leftPct = useMemo(() => (sliderMax > 0 ? (minVal / sliderMax) * 100 : 0), [minVal, sliderMax])
+  const rightPct = useMemo(() => (sliderMax > 0 ? (maxVal / sliderMax) * 100 : 100), [maxVal, sliderMax])
+
+  if (labels.length === 0) return null
 
   return (
     <div className="w-full px-1">
-      {/* Slider track */}
       <div className="relative h-6">
-        {/* Background track */}
         <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-1 rounded-full bg-slate-700" />
-
-        {/* Active range fill */}
         <div
           className="absolute top-1/2 -translate-y-1/2 h-1 rounded-full"
           style={{
@@ -60,39 +59,38 @@ export default function TimeSlider() {
             background: 'linear-gradient(90deg, #06b6d4, #00eeff)',
           }}
         />
-
-        {/* Min thumb */}
         <input
           type="range"
-          min={SLIDER_MIN}
-          max={SLIDER_MAX}
-          value={minVal}
+          min={0}
+          max={sliderMax}
+          value={Math.min(minVal, sliderMax)}
           onChange={handleMinChange}
           className="slider-thumb absolute inset-0 w-full"
           style={{ zIndex: minVal === maxVal ? 2 : 1 }}
         />
-
-        {/* Max thumb */}
         <input
           type="range"
-          min={SLIDER_MIN}
-          max={SLIDER_MAX}
-          value={maxVal}
+          min={0}
+          max={sliderMax}
+          value={Math.min(maxVal, sliderMax)}
           onChange={handleMaxChange}
           className="slider-thumb absolute inset-0 w-full"
           style={{ zIndex: 2 }}
         />
       </div>
-
-      {/* Labels */}
       <div className="flex justify-between text-xs text-cyan-300 mt-1 font-mono">
-        <span>{MONTH_LABELS[minVal]}</span>
-        <span>{MONTH_LABELS[maxVal]}</span>
+        <span>{labels[Math.min(minVal, sliderMax)] ?? ''}</span>
+        <span>{labels[Math.min(maxVal, sliderMax)] ?? ''}</span>
       </div>
-
-      {/* Note: slider thumb styles are in globals.css under .slider-thumb */}
     </div>
   )
 }
 
-export { MONTH_LABELS }
+/** Export labels getter for SalesTrendTab filtering */
+export function useTimeLabels(): string[] {
+  const salesTrendData = useGlobeStore((s) => s.salesTrendData)
+  return useMemo(() => {
+    if (!salesTrendData || salesTrendData.length === 0) return []
+    return [...new Set(salesTrendData.map((r) => r.month))].sort()
+  }, [salesTrendData])
+}

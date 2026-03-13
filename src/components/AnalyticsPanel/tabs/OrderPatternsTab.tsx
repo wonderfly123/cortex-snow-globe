@@ -27,11 +27,14 @@ export default function OrderPatternsTab() {
   const hourPatternsData = useGlobeStore((s) => s.hourPatternsData)
   const setHourPatternsData = useGlobeStore((s) => s.setHourPatternsData)
 
+  const analyticsTimeframe = useGlobeStore((s) => s.analyticsTimeframe)
+
   // Fetch all pattern data — refetch if any dimension is missing
   useEffect(() => {
     if (dowPatternsData && hourPatternsData && orderPatternsData) return
 
-    fetch('/api/analytics/order-patterns')
+    const params = analyticsTimeframe !== null ? `?days=${analyticsTimeframe}` : ''
+    fetch(`/api/analytics/order-patterns${params}`)
       .then((r) => r.json())
       .then((res) => {
         if (res.data) setOrderPatternsData(res.data)
@@ -40,7 +43,7 @@ export default function OrderPatternsTab() {
       })
       .catch(console.error)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dowPatternsData, hourPatternsData, orderPatternsData, analyticsTimeframe])
 
   const loading = !orderPatternsData || !dowPatternsData || !hourPatternsData
 
