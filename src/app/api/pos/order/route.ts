@@ -68,14 +68,19 @@ export async function POST(request: NextRequest) {
     )
     const locationId = locations.length > 0 ? locations[0].LOCATION_ID : 1
 
+    // Get the latest ORDER_TS so new orders always come after it
+    const [{ MAX_TS: maxTs }] = await executeQuery<{ MAX_TS: string }>(
+      `SELECT COALESCE(MAX(ORDER_TS), '2025-09-30 18:00:00'::TIMESTAMP) AS MAX_TS FROM RAW.RECENT_POS_ORDERS`
+    )
+
     // INSERT ORDER_HEADER
     // ORDER_TAX_AMOUNT and ORDER_DISCOUNT_AMOUNT are TEXT columns, NULL in real data
     await executeQuery(
       `INSERT INTO RAW.ORDER_HEADER (
         ORDER_ID, TRUCK_ID, LOCATION_ID, ORDER_TS,
         ORDER_AMOUNT, ORDER_TAX_AMOUNT, ORDER_DISCOUNT_AMOUNT, ORDER_TOTAL
-      ) SELECT ?, ?, ?, DATEADD('second', UNIFORM(28800, 72000, RANDOM()), '2025-09-30'::TIMESTAMP), ?, NULL, NULL, ?`,
-      [orderId, truckId, locationId, orderAmount, orderTotal]
+      ) SELECT ?, ?, ?, DATEADD('second', UNIFORM(1, 30, RANDOM()), ?::TIMESTAMP), ?, NULL, NULL, ?`,
+      [orderId, truckId, locationId, maxTs, orderAmount, orderTotal]
     )
 
     // INSERT ORDER_DETAIL rows (LINE_NUMBER starts at 0)
@@ -103,7 +108,7 @@ export async function POST(request: NextRequest) {
           FRANCHISEE_NAME, LOCATION_ID, MENU_ITEM_ID, MENU_ITEM_NAME,
           QUANTITY, UNIT_PRICE, PRICE, ORDER_AMOUNT,
           ORDER_TAX_AMOUNT, ORDER_DISCOUNT_AMOUNT, ORDER_TOTAL
-        ) SELECT ?, ?, DATEADD('second', UNIFORM(28800, 72000, RANDOM()), '2025-09-30'::TIMESTAMP), '2025-09-30'::DATE,
+        ) SELECT ?, ?, DATEADD('second', UNIFORM(1, 30, RANDOM()), ?::TIMESTAMP), '2025-09-30'::DATE,
           2025, 9,
           ?, ?, 'Kitakata Ramen Bar', 'Ramen',
           ?, ?, ?, ?, ?,
@@ -111,7 +116,7 @@ export async function POST(request: NextRequest) {
           ?, ?, ?, ?,
           NULL, NULL, ?`,
         [
-          orderId, truckId,
+          orderId, truckId, maxTs,
           detailId, i,
           truck.PRIMARY_CITY, truck.REGION, truck.COUNTRY, truck.FRANCHISE_FLAG, truck.FRANCHISE_ID,
           franchiseeName, locationId, item.menuItemId, item.menuItemName,
