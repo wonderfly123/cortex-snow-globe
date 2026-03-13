@@ -16,11 +16,25 @@ export function useOrderFeed() {
   const lastPollRef = useRef(lastPollTimestamp)
   lastPollRef.current = lastPollTimestamp
 
+  const initializedRef = useRef(false)
+
   const poll = useCallback(async () => {
     // Expire old toasts on every poll cycle
     expireRecentOrders(TOAST_TTL)
 
     try {
+      // First poll: just get the latest timestamp without showing toasts
+      if (!initializedRef.current) {
+        initializedRef.current = true
+        const res = await fetch('/api/orders/recent')
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.orders && data.orders.length > 0) {
+          setLastPollTimestamp(data.orders[0].ORDER_TS as string)
+        }
+        return
+      }
+
       const url = lastPollRef.current
         ? `/api/orders/recent?since=${encodeURIComponent(lastPollRef.current)}`
         : '/api/orders/recent'
