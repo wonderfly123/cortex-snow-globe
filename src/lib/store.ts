@@ -223,7 +223,7 @@ export const useGlobeStore = create<GlobeStore>((set) => ({
   setAnalyticsOpen: (open) => set({ analyticsOpen: open }),
   analyticsTab: 'sales-trend' as AnalyticsTab,
   setAnalyticsTab: (tab) => set({ analyticsTab: tab }),
-  timeRange: [0, 22] as [number, number],
+  timeRange: [0, 20] as [number, number],
   setTimeRange: (range) => set({ timeRange: range }),
   analyticsLoading: false,
   setAnalyticsLoading: (loading) => set({ analyticsLoading: loading }),

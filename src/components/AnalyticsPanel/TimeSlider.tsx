@@ -3,11 +3,11 @@
 import React, { useCallback, useMemo } from 'react'
 import { useGlobeStore } from '@/lib/store'
 
-/** 23 months: 2021-01 through 2022-11 */
+/** 21 months: 2024-01 through 2025-09 */
 const MONTH_LABELS: string[] = (() => {
   const labels: string[] = []
-  for (let year = 2021; year <= 2022; year++) {
-    const endMonth = year === 2022 ? 11 : 12
+  for (let year = 2024; year <= 2025; year++) {
+    const endMonth = year === 2025 ? 9 : 12
     for (let m = 1; m <= endMonth; m++) {
       labels.push(`${year}-${String(m).padStart(2, '0')}`)
     }
